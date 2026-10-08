@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The System">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.png" type="image/png">
+<title>THE SYSTEM — Daily Quest</title>
+<style>
+:root{
+  --bg:#03050b; --bg2:#070c1a; --panel:rgba(8,18,40,.78); --panel2:rgba(10,26,58,.85);
+  --line:rgba(90,190,255,.55); --line2:rgba(90,190,255,.25);
+  --glow:#4fb8ff; --glow2:#8fd8ff; --text:#dbeeff; --dim:#86a6c8; --mute:#5d7799;
+  --good:#52f0b4; --warn:#ffcf5c; --bad:#ff5f7a; --purple:#b48cff;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif; font-size:15px; line-height:1.45;
+  min-height:100vh; min-height:100dvh; overflow-x:hidden;
+  padding-top:env(safe-area-inset-top);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(40,110,220,.28), transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(80,40,200,.15), transparent 50%),
+    linear-gradient(rgba(70,150,255,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(70,150,255,.045) 1px, transparent 1px);
+  background-size:auto,auto,32px 32px,32px 32px;
+  background-attachment:fixed;
+}
+body::after{ /* scanlines */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+}
+a{color:var(--glow2)}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--text);background:rgba(4,12,30,.9);border:1px solid var(--line2);border-radius:4px;padding:8px 10px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--glow);box-shadow:0 0 8px rgba(79,184,255,.45)}
+.wrap{max-width:1000px;margin:0 auto;padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px 12px}
+.logo{font-weight:800;letter-spacing:.32em;font-size:15px;color:var(--glow2);text-shadow:0 0 10px var(--glow)}
+.logo small{display:block;letter-spacing:.2em;font-size:10px;color:var(--dim);font-weight:600}
+.datechip{font-size:12px;color:var(--dim);border:1px solid var(--line2);padding:4px 10px;border-radius:20px;white-space:nowrap}
+nav.tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto}
+nav.tabs button{flex:1;min-width:84px;background:rgba(6,16,36,.8);border:1px solid var(--line2);border-radius:4px;padding:9px 8px;
+  text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--dim);transition:.2s}
+nav.tabs button .ic{display:block;font-size:16px;line-height:1;margin-bottom:3px}
+nav.tabs button.on{color:#fff;border-color:var(--glow);box-shadow:0 0 12px rgba(79,184,255,.5), inset 0 0 12px rgba(79,184,255,.25);text-shadow:0 0 6px var(--glow)}
+.badge-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 6px var(--warn);margin-left:4px;vertical-align:middle}
+section.tab{display:none;animation:fadeIn .35s ease}
+section.tab.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- holographic panel ---------- */
+.panel{position:relative;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 0 14px rgba(60,160,255,.35), inset 0 0 22px rgba(60,160,255,.12);padding:16px;margin-bottom:14px;backdrop-filter:blur(3px)}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--glow2);filter:drop-shadow(0 0 4px var(--glow))}
+.panel::before{top:-2px;left:-2px;border-right:none;border-bottom:none}
+.panel::after{bottom:-2px;right:-2px;border-left:none;border-top:none}
+.ptitle{display:flex;justify-content:center;margin:-4px 0 14px}
+.ptitle span{border:1px solid var(--line);padding:4px 22px;letter-spacing:.35em;text-transform:uppercase;font-weight:700;font-size:14px;
+  color:#fff;text-shadow:0 0 8px var(--glow);box-shadow:0 0 10px rgba(79,184,255,.4), inset 0 0 10px rgba(79,184,255,.2);background:rgba(10,30,70,.6)}
+.ptitle.left{justify-content:flex-start}
+.sub{color:var(--dim);font-size:13px}
+.mute{color:var(--mute);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{background:rgba(20,60,120,.35);border:1px solid var(--line);border-radius:4px;padding:8px 14px;letter-spacing:.08em;text-transform:uppercase;font-size:12px;font-weight:700;color:var(--glow2);transition:.15s}
+.btn:hover{background:rgba(40,110,200,.45);box-shadow:0 0 10px rgba(79,184,255,.5);color:#fff}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(180deg,rgba(60,150,255,.55),rgba(30,80,180,.55));color:#fff;border-color:var(--glow2)}
+.btn.warn{border-color:rgba(255,207,92,.7);color:var(--warn);background:rgba(90,60,0,.25)}
+.btn.danger{border-color:rgba(255,95,122,.7);color:var(--bad);background:rgba(90,0,20,.25)}
+.btn.sm{padding:5px 9px;font-size:11px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+/* ---------- status window ---------- */
+.status-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px}
+.kv b{color:var(--dim);font-weight:600;letter-spacing:.12em;font-size:12px;text-transform:uppercase;align-self:center}
+.kv span{font-weight:600}
+.lvlbox{text-align:center;min-width:110px}
+.lvlbox .lbl{font-size:11px;letter-spacing:.3em;color:var(--dim)}
+.lvlbox .num{font-size:52px;font-weight:800;line-height:1;color:#fff;text-shadow:0 0 14px var(--glow),0 0 30px rgba(79,184,255,.6)}
+.rank{display:inline-block;margin-top:6px;padding:2px 12px;border:1px solid;border-radius:3px;font-weight:800;letter-spacing:.2em;font-size:13px}
+.rank-E{color:#a9b4c4;border-color:#6f7c90;box-shadow:0 0 8px rgba(169,180,196,.35)}
+.rank-D{color:#6dfca8;border-color:#3bbf78;box-shadow:0 0 8px rgba(109,252,168,.45)}
+.rank-C{color:#5fc6ff;border-color:#2f8ad6;box-shadow:0 0 8px rgba(95,198,255,.55)}
+.rank-B{color:#c79bff;border-color:#8c5ae0;box-shadow:0 0 10px rgba(199,155,255,.55)}
+.rank-A{color:#ffd56b;border-color:#d6a52f;box-shadow:0 0 10px rgba(255,213,107,.6)}
+.rank-S{color:#ff7b7b;border-color:#ff3b5c;box-shadow:0 0 14px rgba(255,80,100,.7)}
+.bar{position:relative;height:12px;border:1px solid var(--line);border-radius:2px;background:rgba(0,10,30,.8);overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#1f6fff,#5cc8ff);box-shadow:0 0 10px var(--glow);transition:width .6s ease}
+.bar.hp>i{background:linear-gradient(90deg,#c0213e,#ff5f7a);box-shadow:0 0 8px #ff5f7a}
+.bar.mp>i{background:linear-gradient(90deg,#2337c9,#6f8bff);box-shadow:0 0 8px #6f8bff}
+.bar.good>i{background:linear-gradient(90deg,#16a776,#52f0b4);box-shadow:0 0 8px #52f0b4}
+.barlbl{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);letter-spacing:.1em;margin:10px 0 3px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)}
+.stat{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid transparent;border-radius:4px}
+.stat:hover{border-color:var(--line2)}
+.stat .nm{font-weight:800;letter-spacing:.12em;width:40px;color:var(--glow2)}
+.stat .val{font-weight:700;font-size:18px;min-width:30px}
+.stat .desc{font-size:11px;color:var(--mute);flex:1}
+.plus{width:26px;height:26px;border:1px solid var(--glow);border-radius:3px;background:rgba(79,184,255,.15);color:#fff;font-weight:800;line-height:1;box-shadow:0 0 8px rgba(79,184,255,.5);animation:pulse 1.5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 16px rgba(79,184,255,.95)}}
+.points{margin-top:10px;text-align:right;font-size:13px;color:var(--dim)}
+.points b{color:var(--warn);text-shadow:0 0 6px var(--warn);font-size:16px}
+.streak{display:flex;gap:10px;margin-top:12px}
+.streak>div{flex:1;text-align:center;border:1px solid var(--line2);border-radius:4px;padding:8px 4px;background:rgba(5,15,35,.6)}
+.streak .n{font-size:24px;font-weight:800;color:#fff;text-shadow:0 0 8px var(--glow)}
+.streak .l{font-size:10px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.flame{color:var(--warn)!important;text-shadow:0 0 10px #ff9a3c!important}
+
+/* ---------- quests ---------- */
+.dq-head{text-align:center;margin-bottom:12px}
+.dq-head .t{font-size:13px;letter-spacing:.25em;color:var(--glow2);text-transform:uppercase}
+.dq-head .goal{font-size:12px;color:var(--dim);margin-top:4px}
+.quest{border:1px solid var(--line2);border-radius:5px;padding:12px;margin-bottom:10px;background:rgba(4,12,30,.55);transition:.3s;position:relative}
+.quest.done{border-color:rgba(82,240,180,.55);box-shadow:0 0 10px rgba(82,240,180,.25);background:rgba(4,30,26,.45)}
+.quest.penalty{border-color:rgba(255,95,122,.55);background:rgba(40,6,14,.5)}
+.quest.optional{border-style:dashed}
+.qhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.qcat{font-size:10px;letter-spacing:.18em;color:var(--glow);border:1px solid var(--line2);padding:1px 6px;border-radius:2px;text-transform:uppercase}
+.quest.penalty .qcat{color:var(--bad);border-color:rgba(255,95,122,.5)}
+.qtitle{font-weight:700;font-size:15px;flex:1}
+.qxp{font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
+.quest.done .qtitle::after{content:" ✓";color:var(--good)}
+.qitems{list-style:none;margin:8px 0 0;padding:0}
+.qitems li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dashed rgba(90,190,255,.12);font-size:14px}
+.qitems li:last-child{border-bottom:none}
+.exlink{color:var(--text);text-decoration:none;border-bottom:1px dotted var(--glow);cursor:pointer}
+.exlink:hover{color:#fff;text-shadow:0 0 6px var(--glow)}
+.amt{color:var(--glow2);font-weight:700;white-space:nowrap}
+.qnote{font-size:12px;color:var(--dim);margin-top:6px}
+.qctrl{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.counter{display:flex;align-items:center;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.counter button{width:38px;height:34px;background:rgba(30,80,160,.35);border:none;font-size:18px;font-weight:800;color:#fff}
+.counter button:hover{background:rgba(60,140,240,.5)}
+.counter .cv{min-width:64px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.chk{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-weight:600;font-size:13px}
+.chk input{display:none}
+.chk .box{width:24px;height:24px;border:1px solid var(--glow);border-radius:3px;display:grid;place-items:center;box-shadow:0 0 6px rgba(79,184,255,.4)}
+.chk input:checked + .box{background:rgba(82,240,180,.25);border-color:var(--good)}
+.chk input:checked + .box::after{content:"✓";color:var(--good);font-weight:900}
+.stepin{width:120px}
+.progress-pill{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.alert{border:1px solid rgba(255,207,92,.55);background:rgba(60,40,0,.3);color:#ffe3a1;border-radius:5px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.alert.red{border-color:rgba(255,95,122,.55);background:rgba(60,0,14,.35);color:#ffc2cc}
+.alert b{letter-spacing:.08em}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:90px;padding:9px 6px;border:1px solid var(--line2);background:rgba(6,16,36,.8);border-radius:4px;font-size:13px;color:var(--dim)}
+.seg button.on{border-color:var(--glow);color:#fff;box-shadow:0 0 10px rgba(79,184,255,.45);background:rgba(30,80,160,.35)}
+.seg button.on.p{border-color:var(--bad);box-shadow:0 0 10px rgba(255,95,122,.45);background:rgba(90,0,20,.35)}
+.allclear{text-align:center;padding:10px;border:1px solid rgba(82,240,180,.6);border-radius:5px;color:var(--good);letter-spacing:.2em;font-weight:800;text-shadow:0 0 10px var(--good);margin-bottom:10px}
+
+/* ---------- missions ---------- */
+.mission{display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:10px 0;border-bottom:1px dashed var(--line2)}
+.mission:last-child{border-bottom:none}
+.mission .mt{font-weight:700}
+.mission .mx{color:var(--warn);font-size:12px;font-weight:700;text-align:right}
+.mission .bar{grid-column:1/-1;height:8px}
+.mission.claimed .mt::after{content:"  ✓ CLEARED";color:var(--good);font-size:11px;letter-spacing:.15em}
+.gate{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line2);border-radius:5px;margin-bottom:10px;background:rgba(4,12,30,.55)}
+.gate .portal{width:48px;height:48px;flex:none;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%, #fff 0, #8fd8ff 12%, #2a6bff 35%, #120a40 62%, transparent 70%);
+  box-shadow:0 0 18px #4fb8ff, inset 0 0 12px #000;animation:spin 6s linear infinite}
+.gate.red .portal{background:radial-gradient(circle,#fff 0,#ff9aa8 12%,#ff2a4d 35%,#3a0610 62%,transparent 70%);box-shadow:0 0 18px #ff4d6a}
+.gate.locked{opacity:.45}
+.gate.locked .portal{filter:grayscale(1);animation:none}
+.gate.cleared .portal{filter:hue-rotate(110deg)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gate .gi{flex:1}
+.gate .gn{font-weight:700}
+.gate .gr{font-size:11px;letter-spacing:.15em;color:var(--dim)}
+
+/* ---------- log & charts ---------- */
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.form label{display:block;font-size:11px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-bottom:3px}
+.chart-wrap{border:1px solid var(--line2);border-radius:5px;padding:8px;background:rgba(2,8,22,.7)}
+.chart-wrap svg{width:100%;height:auto;max-height:260px;display:block;margin:0 auto}
+.chart-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:6px}
+.chart-stats b{color:#fff}
+table.log{width:100%;border-collapse:collapse;font-size:13px}
+table.log th,table.log td{padding:6px 6px;border-bottom:1px solid var(--line2);text-align:right;white-space:nowrap}
+table.log th{color:var(--dim);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+table.log th:first-child,table.log td:first-child{text-align:left}
+.tablewrap{overflow-x:auto}
+.ach{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.achc{border:1px solid var(--line2);border-radius:5px;padding:10px;background:rgba(4,12,30,.55);opacity:.45}
+.achc.got{opacity:1;border-color:rgba(255,207,92,.6);box-shadow:0 0 10px rgba(255,207,92,.2)}
+.achc .an{font-weight:700}
+.achc.got .an{color:var(--warn)}
+.achc .ad{font-size:12px;color:var(--dim)}
+.achc .at{font-size:11px;color:var(--glow2);margin-top:4px}
+
+/* ---------- library ---------- */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chips button{border:1px solid var(--line2);background:rgba(6,16,36,.8);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--dim)}
+.chips button.on{border-color:var(--glow);color:#fff;box-shadow:0 0 8px rgba(79,184,255,.45)}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.excard{border:1px solid var(--line2);border-radius:5px;padding:12px;background:rgba(4,12,30,.55)}
+.excard h4{margin:0 0 4px;font-size:15px}
+.excard .tags{font-size:10px;letter-spacing:.15em;color:var(--glow);text-transform:uppercase;margin-bottom:6px}
+.excard p{margin:6px 0;font-size:13px}
+.safety{font-size:12px;color:#ffe3a1;border-left:2px solid var(--warn);padding-left:8px}
+.cur{font-size:10px;letter-spacing:.15em;color:var(--good);border:1px solid rgba(82,240,180,.5);padding:1px 6px;border-radius:2px;margin-left:6px;vertical-align:middle}
+.ladder{font-size:12px;color:var(--dim);margin-top:6px}
+
+/* ---------- system modal ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,3,10,.72);display:none;align-items:center;justify-content:center;z-index:500;padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left))}
+.modal-bg.open{display:flex}
+.modal{width:min(520px,100%);max-height:88vh;overflow:auto;animation:openPanel .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes openPanel{from{transform:scaleY(.02) scaleX(.6);opacity:0}60%{transform:scaleY(1.03) scaleX(1);opacity:1}to{transform:none}}
+.modal .nhead{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+.modal .bang{width:30px;height:30px;border:1px solid var(--glow2);display:grid;place-items:center;font-weight:900;color:#fff;box-shadow:0 0 10px var(--glow);border-radius:3px}
+.modal .ntitle{border:1px solid var(--line);padding:4px 16px;letter-spacing:.3em;font-weight:700;text-transform:uppercase;font-size:13px;text-shadow:0 0 8px var(--glow);box-shadow:inset 0 0 10px rgba(79,184,255,.2)}
+.modal .nbody{text-align:center;font-size:15px}
+.modal .nbody .hl{color:var(--glow2);font-weight:700;text-shadow:0 0 6px var(--glow)}
+.modal .nbody ul{text-align:left;margin:10px auto;padding-left:18px;max-width:380px}
+.modal .nbtns{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:600;pointer-events:none;display:flex;flex-direction:column;gap:6px;align-items:center}
+.toast div{background:rgba(6,20,48,.92);border:1px solid var(--line);padding:6px 14px;border-radius:4px;font-weight:700;color:var(--warn);text-shadow:0 0 6px rgba(255,207,92,.6);box-shadow:0 0 12px rgba(79,184,255,.4);animation:toastA 2.2s forwards}
+@keyframes toastA{0%{opacity:0;transform:translateY(-8px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
+.qc-overlay{position:fixed;inset:0;z-index:550;display:none;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(30,90,200,.35),rgba(0,0,0,.6))}
+.qc-overlay.show{display:flex;animation:qcFade 2.8s forwards}
+.qc-overlay .t{font-size:clamp(26px,7vw,54px);font-weight:900;letter-spacing:.18em;color:#fff;text-align:center;
+  text-shadow:0 0 12px var(--glow),0 0 36px var(--glow),0 0 70px #1f6fff;animation:qcZoom 2.8s forwards;position:relative;padding:20px 10px}
+.qc-overlay .t::before,.qc-overlay .t::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--glow2),transparent);box-shadow:0 0 12px var(--glow)}
+.qc-overlay .t::before{top:0}.qc-overlay .t::after{bottom:0}
+.qc-overlay .t small{display:block;font-size:.32em;letter-spacing:.4em;color:var(--glow2)}
+@keyframes qcFade{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes qcZoom{0%{transform:scale(1.6);filter:blur(8px)}15%{transform:scale(1);filter:blur(0)}100%{transform:scale(1.04)}}
+footer.disc{font-size:11px;color:var(--mute);text-align:center;margin-top:20px;line-height:1.5}
+
+/* ---------- responsive ---------- */
+@media (max-width:720px){
+  .wrap{padding:10px 10px calc(92px + env(safe-area-inset-bottom))}
+  .grid2{grid-template-columns:1fr}
+  .form{grid-template-columns:1fr 1fr}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:400;margin:0;padding:6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));gap:4px;
+    background:rgba(3,7,18,.96);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(79,184,255,.25)}
+  nav.tabs button{min-width:0;padding:6px 2px;font-size:9.5px;letter-spacing:.06em}
+  .lvlbox .num{font-size:42px}
+  .stats{grid-template-columns:1fr}
+  .stat .desc{display:none}
+  .panel{padding:13px}
+}
+@media (max-width:380px){.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">THE SYSTEM<small>PLAYER FITNESS INTERFACE</small></div>
+    <div class="datechip" id="dateChip"></div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-tab="status" class="on"><span class="ic">◈</span>Status</button>
+    <button data-tab="quests"><span class="ic">❖</span>Quests<span id="qDot"></span></button>
+    <button data-tab="missions"><span class="ic">⬡</span>Missions</button>
+    <button data-tab="log"><span class="ic">▤</span>Log</button>
+    <button data-tab="library"><span class="ic">☰</span>Library</button>
+    <button data-tab="settings"><span class="ic">⚙</span>System</button>
+  </nav>
+
+  <section class="tab on" id="tab-status"></section>
+  <section class="tab" id="tab-quests"></section>
+  <section class="tab" id="tab-missions"></section>
+  <section class="tab" id="tab-log"></section>
+  <section class="tab" id="tab-library"></section>
+  <section class="tab" id="tab-settings"></section>
+
+  <footer class="disc">
+    The System is a motivation tool, not medical advice. Clear this plan with your doctor before starting, especially with diabetes,
+    a repaired rotator cuff, or any heart concerns. <b>Pain Stop Rule:</b> sharp pain or any shoulder pain = stop and log it.
+  </footer>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="panel modal" id="modal">
+    <div class="nhead"><div class="bang">!</div><div class="ntitle" id="mTitle">NOTIFICATION</div></div>
+    <div class="nbody" id="mBody"></div>
+    <div class="nbtns" id="mBtns"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="qc-overlay" id="qc"><div class="t" id="qcText">QUEST COMPLETE</div></div>
+<script>
+"use strict";
+/* =====================================================================
+   THE SYSTEM — gamified fitness quests (v1). All data stays in localStorage.
+   ===================================================================== */
+const STORE_KEY = "theSystem.fitness.v1";
+const APP_VERSION = 1;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const params = new URLSearchParams(location.search);
+
+/* ---------- dates (local time) ---------- */
+function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseKey(k){ const [y,m,d] = k.split("-").map(Number); return new Date(y, m-1, d); }
+function addDays(k, n){ const d = parseKey(k); d.setDate(d.getDate()+n); return dkey(d); }
+function daysBetween(a, b){ return Math.round((parseKey(b) - parseKey(a)) / 86400000); }
+function weekStart(k){ const d = parseKey(k); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return dkey(d); }
+function todayKey(){ const o = params.get("date"); return (o && /^\d{4}-\d{2}-\d{2}$/.test(o)) ? o : dkey(new Date()); } // ?date= is for testing only
+function prettyDate(k){ return parseKey(k).toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"}); }
+
+/* =====================================================================
+   EXERCISE LIBRARY  (bodyweight + sturdy chair + wall/counter only)
+   unit: reps | sec | min ; each: per side/leg
+   ===================================================================== */
+const EX = {
+  /* --- push ladder (shoulder-safe: hands never above chest height) --- */
+  wall_pushup:{name:"Wall Push-Up",cat:"Strength",area:"shoulder",unit:"reps",base:8,
+    how:"Stand an arm's length from a wall. Hands on the wall at chest height, a little wider than your shoulders. Keep your body in one straight line, bend your elbows to bring your chest toward the wall, then push back.",
+    safety:"Hands at chest height, never above your shoulders. Elbows about 45° from your body, not flared out. Any pinch or ache in the right shoulder = stop and report it."},
+  counter_pushup:{name:"Counter Push-Up",cat:"Strength",area:"shoulder",unit:"reps",base:8,
+    how:"Hands on the edge of a sturdy kitchen counter, shoulder-width. Walk your feet back until your body is on a slant. Lower your chest toward the counter edge, then push back up.",
+    safety:"Counter must be solid and dry. A shorter range is fine. Shoulder pain = drop back to wall push-ups."},
+  chair_pushup:{name:"Chair Incline Push-Up",cat:"Strength",area:"shoulder",unit:"reps",base:6,
+    how:"Push a sturdy chair back against a wall so it can't slide. Hands on the front edge of the seat, body in a straight slant from head to heels, lower slowly, push up.",
+    safety:"Chair must be braced against a wall and not on a rug. This is harder than the counter. Only the System promotes you here. Shoulder pain = go back to the counter."},
+  /* --- shoulder care (rotator-cuff-friendly) --- */
+  scap_squeeze:{name:"Scapular Squeeze",cat:"Shoulder Care",area:"shoulder",unit:"reps",base:10,
+    how:"Sit or stand tall with arms relaxed. Gently squeeze your shoulder blades back and down, as if holding a pencil between them. Hold 3 seconds, release.",
+    safety:"Don't shrug toward your ears. Use a gentle squeeze, not a maximal one."},
+  pendulum:{name:"Pendulum Swings",cat:"Shoulder Care",area:"shoulder",unit:"sec",base:30,each:true,
+    how:"Lean forward with your free hand on a counter or chair. Let the working arm hang loose like a rope. Rock your body so the arm swings in small circles, then side to side. Gravity does the work.",
+    safety:"The arm stays relaxed. Your body moves it, not the shoulder muscles. Keep the circles small."},
+  ext_rotation:{name:"External Rotation (No Weight)",cat:"Shoulder Care",area:"shoulder",unit:"reps",base:10,each:true,
+    how:"Elbow tucked at your side, bent 90°, with a rolled towel between elbow and ribs. Slowly rotate your forearm outward like a door opening, then back in.",
+    safety:"No weights, no band. Only rotate as far as is comfortable, with the elbow pinned to your side."},
+  wall_slide:{name:"Wall Slides (Comfort Range)",cat:"Shoulder Care",area:"shoulder",unit:"reps",base:8,
+    how:"Face a wall with your forearms on it, elbows at or below shoulder height. Slide your forearms up the wall a few inches, then back down.",
+    safety:"Only slide up to a comfortable height, well below any pinch. Never force overhead. Skipped automatically while the shoulder is flagged."},
+  /* --- legs ladder (knee-friendly, no jumping) --- */
+  sit_stand_assist:{name:"Chair Sit-to-Stand (Hands Assist)",cat:"Strength",area:"knee",unit:"reps",base:6,
+    how:"Sit near the front of a sturdy chair, feet flat and hip-width apart. Lean slightly forward and push through your heels, using your hands on your thighs or the armrests to stand all the way up. Sit back down slowly.",
+    safety:"Put the chair against a wall. Knees track over your toes and don't cave inward. Use as much hand help as you need."},
+  sit_stand:{name:"Chair Sit-to-Stand (No Hands)",cat:"Strength",area:"knee",unit:"reps",base:6,
+    how:"Same setup, but cross your arms on your chest or reach them forward. Stand fully, then lower to the seat on a slow 3-count.",
+    safety:"Chair against a wall. If you plop down, go back to using your hands. Control matters more than reps."},
+  partial_squat:{name:"Supported Partial Squat",cat:"Strength",area:"knee",unit:"reps",base:8,
+    how:"Hold the counter edge with both hands. Push your hips back and bend your knees a quarter to halfway down, like starting to sit, then stand back up.",
+    safety:"Only go as deep as is pain-free. This is a partial squat, not a deep one. Keep your heels down and add no weight."},
+  step_up:{name:"Low Step-Up",cat:"Strength",area:"knee",unit:"reps",base:6,each:true,
+    how:"Use the bottom stair or a sturdy low step (4–6 in) with a rail or wall to hold. Step up with one foot, bring the other up, then step down the same way. Switch the leading leg.",
+    safety:"Low step only, with a hand on the rail. Put your whole foot on the step. No jumping."},
+  seated_knee_ext:{name:"Seated Knee Extension",cat:"Knee-Friendly",area:"knee",unit:"reps",base:10,each:true,
+    how:"Sit tall in a chair. Slowly straighten one knee until the leg is out straight, squeeze the thigh for 2 seconds, then lower slowly.",
+    safety:"No weight. Keep it slow and smooth. This is your go-to when the knees feel cranky."},
+  /* --- hinge / glutes (circulation + hips + back support) --- */
+  glute_bridge:{name:"Glute Bridge",cat:"Strength",area:"back",unit:"reps",base:8,
+    how:"Lie on your back on the bed or floor, knees bent, feet flat. Squeeze your glutes and lift your hips until there's a line from knees to shoulders. Pause, then lower slowly.",
+    safety:"Lift with your glutes; don't arch your lower back. Make it smaller if your back complains. The bed is fine if getting to the floor is hard."},
+  bridge_hold:{name:"Glute Bridge + 3s Hold",cat:"Strength",area:"back",unit:"reps",base:8,
+    how:"Same as the glute bridge, but hold the top for 3 seconds while squeezing your glutes before lowering.",
+    safety:"Breathe during the hold. Keep your ribs down so the back doesn't arch."},
+  bridge_march:{name:"Bridge March",cat:"Strength",area:"back",unit:"reps",base:6,each:true,
+    how:"Hold a bridge, then slowly lift one foot an inch off the floor, set it down, and lift the other.",
+    safety:"Keep your hips level. Go back to plain bridges if your back hurts."},
+  /* --- core (no sit-ups / crunches) --- */
+  pelvic_tilt:{name:"Pelvic Tilt",cat:"Core",area:"back",unit:"reps",base:10,
+    how:"Lie on your back with knees bent. Gently flatten your lower back into the surface by tightening your stomach and tilting your pelvis. Hold 3 seconds, relax.",
+    safety:"A tiny, gentle movement and very back-friendly."},
+  dead_bug:{name:"Dead Bug (Modified Heel Taps)",cat:"Core",area:"back",unit:"reps",base:6,each:true,
+    how:"Lie on your back, knees bent, lower back pressed down. Lift your feet so your knees are over your hips (or keep one foot down). Slowly lower one heel to tap the floor, bring it back, then switch.",
+    safety:"Arms stay at your sides. No overhead reaching. Your lower back stays down the whole time; if it lifts, make the move smaller."},
+  standing_bird_dog:{name:"Standing Bird Dog (Counter)",cat:"Core",area:"back",unit:"reps",base:6,each:true,
+    how:"Hands on the counter, lean slightly forward. Slowly extend one leg straight back, squeeze the glute, and hold 2 seconds. Return, then switch legs.",
+    safety:"Hips stay square and the back doesn't arch. Hands stay on the counter."},
+  bird_dog:{name:"Bird Dog",cat:"Core",area:"back",unit:"reps",base:5,each:true,
+    how:"On hands and knees with a pad under your knees. Slowly extend one leg back. Add the opposite arm forward only if it's comfortable, no higher than shoulder height, or keep both hands down.",
+    safety:"The right arm reaches to shoulder height at most, or skip the arm reach. Keep your back flat and move slowly."},
+  /* --- mobility (mid-back, hips, ankles) --- */
+  cat_cow:{name:"Cat-Cow (Seated)",cat:"Mobility",area:"back",unit:"reps",base:8,
+    how:"Sit on the edge of the chair with hands on your knees. Round your back and tuck your chin (cat), then lift your chest and gently arch (cow). Breathe with each move. You can also do it on hands and knees.",
+    safety:"Slow, gentle range. The seated version keeps weight off the shoulder."},
+  thoracic_rotation:{name:"Seated Thoracic Rotation",cat:"Mobility",area:"back",unit:"reps",base:6,each:true,
+    how:"Sit tall with arms crossed over your chest. Rotate your upper body to one side from the mid-back, hold 2 seconds, return, and switch.",
+    safety:"Hips stay still. Only turn as far as is comfortable."},
+  hip_flexor:{name:"Standing Hip Flexor Stretch",cat:"Mobility",area:"knee",unit:"sec",base:20,each:true,
+    how:"Hold a counter. Step one foot back into a short split stance, tuck your pelvis under, and shift forward gently until you feel a stretch at the front of the back hip.",
+    safety:"A gentle stretch with no bouncing. Keep your front knee over the ankle."},
+  calf_stretch:{name:"Wall Calf Stretch",cat:"Mobility",area:"knee",unit:"sec",base:20,each:true,
+    how:"Hands on the wall at chest height, one foot back with the heel down. Lean in until you feel the calf stretch.",
+    safety:"Hands at chest height or lower. Hold steady and don't bounce."},
+  ankle_circles:{name:"Seated Ankle Circles & Pumps",cat:"Mobility",area:"knee",unit:"reps",base:10,each:true,
+    how:"Seated, lift one foot slightly. Draw slow circles with your toes, then pump the foot up and down. Great for circulation.",
+    safety:"Very low stress. While you're down there, check your feet for cuts or blisters (important with diabetes)."},
+  /* --- cardio / walking --- */
+  march:{name:"Standing March",cat:"Cardio",area:"knee",unit:"sec",base:30,
+    how:"Hold the counter if needed and march in place, lifting your knees to a comfortable height and swinging your arms at your sides.",
+    safety:"No jumping. Hold onto support for balance."},
+  seated_march:{name:"Seated March",cat:"Knee-Friendly",area:"knee",unit:"sec",base:30,
+    how:"Sit tall near the front of a chair and alternate lifting each knee a few inches, swinging your arms at your sides.",
+    safety:"Low-impact. Keep your back tall and breathe steadily."},
+  walk:{name:"Walking",cat:"Cardio",area:"knee",unit:"min",base:10,
+    how:"Walk at a 'brisk but can still talk' pace. Indoors, outside, a store, or laps around the house all count.",
+    safety:"Wear supportive shoes and check your feet daily (diabetes). If you're on insulin or meds that can cause lows, carry a quick sugar source. Dizziness, chest pain, or shakiness = stop and rest."},
+  post_meal_walk:{name:"Post-Meal Walk",cat:"Habit",area:"knee",unit:"min",base:10,
+    how:"Within about 30 minutes after a meal, take an easy 10-minute walk. Short walks after eating help your muscles use the sugar from that meal. It's one of the best habits for blood sugar.",
+    safety:"An easy pace is plenty. Supportive shoes. Stop if dizzy or short of breath."},
+  /* --- habits --- */
+  water:{name:"Hydration",cat:"Habit",area:"none",unit:"glasses",base:8,
+    how:"Drink a glass (~8 oz) of water at a time and tap + each time. Swap sugary drinks for water or unsweetened options.",
+    safety:"If your doctor has you on a fluid limit (kidney/heart issues), follow their number instead."},
+  kegel:{name:"Kegels (Pelvic Floor)",cat:"Habit",area:"none",unit:"reps",base:10,
+    how:"Find the muscles you'd use to stop the flow of urine (but don't practice while urinating). Squeeze and lift for 3 seconds, relax for 3 seconds. Breathe normally, without squeezing your glutes, thighs, or stomach. Can be done sitting, lying, or standing.",
+    safety:"Relax fully between reps. Optional quest. Pelvic floor training can support erectile function and works alongside your doctor's care."},
+  sleep:{name:"Sleep Window",cat:"Habit",area:"none",unit:"hrs",base:7,
+    how:"Aim for 7+ hours. Keep a consistent bedtime, put screens down 30 minutes before bed, and keep the room cool and dark. Log your hours each morning.",
+    safety:"Loud snoring, gasping, or waking up exhausted can be signs of sleep apnea, which is common and very treatable. Worth mentioning to your doctor."}
+};
+
+/* Movement families, progression ladders, and gentle swaps when an area is flagged. */
+const FAMILIES = ["push","legs","hinge","core","cardio","mobility","steps"];
+const LADDERS = {
+  push:["wall_pushup","counter_pushup","chair_pushup"],
+  legs:["sit_stand_assist","sit_stand","partial_squat","step_up"],
+  hinge:["glute_bridge","bridge_hold","bridge_march"],
+  core:["pelvic_tilt","dead_bug","standing_bird_dog","bird_dog"]
+};
+const FAMILY_AREA = {push:"shoulder", legs:"knee", hinge:"back", core:"back", cardio:"knee", steps:"knee", mobility:"none"};
+const GENTLE_SWAP = {push:"scap_squeeze", legs:"seated_knee_ext", hinge:"pelvic_tilt", core:"cat_cow", cardio:"seated_march"};
+const FAMILY_LABEL = {push:"Push", legs:"Legs", hinge:"Hips/Glutes", core:"Core", cardio:"Cardio", mobility:"Mobility", steps:"Steps"};
+
+/* ---------- XP / ranks ---------- */
+const XP = {steps:30, mealwalk:25, circuit:40, mobility:25, water:15, kegel:15, penalty:20, allClearBase:50};
+const xpNeed = lvl => 100 + 50*(lvl-1);
+function rankOf(l){ return l>=75?"S": l>=50?"A": l>=35?"B": l>=20?"C": l>=10?"D":"E"; }
+const JOBS = {E:"None", D:"Hunter", C:"Vanguard", B:"Knight", A:"Monarch Candidate", S:"Shadow Monarch"};
+const STAT_INFO = {
+  STR:"Strength: circuits, push & leg power",
+  VIT:"Vitality: endurance, walking, energy",
+  AGI:"Agility: mobility, balance, flexibility",
+  SEN:"Sense: consistency & discipline"
+};
+
+/* ---------- achievements → titles ---------- */
+function weightDelta(s){
+  const w = Object.keys(s.metrics).sort().map(k=>s.metrics[k].weight).filter(v=>v>0);
+  return w.length>=2 ? w[0]-w[w.length-1] : 0;
+}
+const ACH = [
+  {id:"awakened", name:"Awakened", desc:"Open the System for the first time.", title:"The Awakened", test:s=>true},
+  {id:"first_clear", name:"First Clear", desc:"Complete every required Daily Quest in one day.", title:"Quest Clearer", test:s=>s.counters.daysCleared>=1},
+  {id:"streak3", name:"3-Day Streak", desc:"Clear Daily Quests 3 days in a row.", title:"", test:s=>s.bestStreak>=3},
+  {id:"streak7", name:"7-Day Streak", desc:"Clear Daily Quests 7 days in a row.", title:"Unbroken", test:s=>s.bestStreak>=7},
+  {id:"streak30", name:"30-Day Streak", desc:"Clear Daily Quests 30 days in a row.", title:"Iron Will", test:s=>s.bestStreak>=30},
+  {id:"lv5", name:"Level 5", desc:"Reach Level 5.", title:"Rising Player", test:s=>s.level>=5},
+  {id:"lv10", name:"D-Rank", desc:"Reach Level 10 (Rank D).", title:"D-Rank Hunter", test:s=>s.level>=10},
+  {id:"lv20", name:"C-Rank", desc:"Reach Level 20 (Rank C).", title:"C-Rank Hunter", test:s=>s.level>=20},
+  {id:"lb5", name:"First 5 lb", desc:"Weight down 5 lb from your first log.", title:"Weight Breaker", test:s=>weightDelta(s)>=5},
+  {id:"lb10", name:"10 lb Down", desc:"Weight down 10 lb from your first log.", title:"", test:s=>weightDelta(s)>=10},
+  {id:"lb25", name:"25 lb Down", desc:"Weight down 25 lb from your first log.", title:"The Transformed", test:s=>weightDelta(s)>=25},
+  {id:"walker", name:"Post-Meal Patrol", desc:"Complete 21 post-meal walks.", title:"Sugar Slayer", test:s=>s.counters.mealWalks>=21},
+  {id:"steps10k", name:"10K Day", desc:"Log 10,000+ steps in one day.", title:"", test:s=>Object.values(s.metrics).some(m=>m.steps>=10000)},
+  {id:"guardian", name:"Shoulder Guardian", desc:"Complete Mobility & Shoulder Care 10 times.", title:"Guardian", test:s=>s.counters.mobility>=10},
+  {id:"analyst", name:"Analyst", desc:"Log metrics on 7 different days.", title:"The Analyst", test:s=>Object.keys(s.metrics).length>=7},
+  {id:"penalty", name:"Penalty Zone Survivor", desc:"Complete a Penalty Zone quest.", title:"Survivor", test:s=>s.counters.penalties>=1},
+  {id:"gate1", name:"Gate Breaker", desc:"Clear your first Dungeon.", title:"Gate Breaker", test:s=>Object.keys(s.dungeons).length>=1},
+  {id:"wise", name:"Listen to the Body", desc:"Report pain and let the System adjust instead of pushing through.", title:"The Wise", test:s=>s.painLog.length>=1},
+  {id:"evolve", name:"Skill Evolved", desc:"Advance any movement to its next progression.", title:"", test:s=>Object.values(s.rungs).some(r=>r>0)},
+  {id:"weekly", name:"Mission Accomplished", desc:"Clear 5 weekly missions.", title:"Operator", test:s=>s.counters.weeklyClears>=5}
+];
+
+/* ---------- dungeons (milestone challenges, unlocked by level) ---------- */
+const DUNGEONS = [
+  {id:"corridor", lvl:3, name:"The Long Corridor", rank:"E", xp:80, task:"Walk 15 minutes without stopping, at a pace where you can still talk.", safety:"Flat route, supportive shoes, water. Stop if dizzy or in pain."},
+  {id:"rising", lvl:5, name:"Gate of Rising", rank:"E", xp:100, task:"10 chair sit-to-stands in a row without using your hands.", safety:"Chair against the wall. Slow lowering. Hands are allowed if you start to lose control; just try again another day."},
+  {id:"trial20", lvl:8, name:"Twenty-Minute Trial", rank:"D", xp:120, task:"A 20-minute walk without stopping.", safety:"Bring water, and a quick sugar if your meds can cause lows."},
+  {id:"ironwall", lvl:10, name:"Iron Wall", rank:"D", xp:140, task:"15 counter push-ups with clean form (body straight, controlled).", safety:"Hands at chest height on a solid counter. Any shoulder pain = retreat and report."},
+  {id:"unbowed", lvl:12, name:"Stand of the Unbowed", rank:"D", xp:150, task:"15 chair sit-to-stands unassisted.", safety:"Chair against the wall. Stop if your knees hurt (discomfort from effort is OK; sharp pain is not)."},
+  {id:"stair", lvl:15, name:"Stairway Gate", rank:"C", xp:170, task:"3 sets of 8 low step-ups per leg, holding the rail.", safety:"Bottom stair only, with a hand on the rail. Rest as long as needed between sets."},
+  {id:"tenk", lvl:18, name:"The 10K Gate", rank:"C", xp:200, task:"10,000 steps in a single day.", safety:"Spread it across the day. Post-meal walks make it easy. Check your feet afterward."},
+  {id:"red30", lvl:20, name:"Red Gate: Thirty", rank:"C", xp:250, red:true, task:"A 30-minute walk without stopping.", safety:"Hydrate. Pick a route with places to sit if needed."},
+  {id:"citadel", lvl:25, name:"Core Citadel", rank:"B", xp:300, task:"3 × 8 slow bird dogs per side (or standing bird dogs) with a flat back.", safety:"Right arm to shoulder height at most, or keep the hands down."}
+];
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+function defaultState(){
+  return {
+    version:APP_VERSION, name:"Player", created:todayKey(), introDone:false,
+    level:1, xp:0, totalXp:0, statPoints:0, stats:{STR:10, VIT:10, AGI:10, SEN:10},
+    streak:0, bestStreak:0, lastCompleteDate:null, title:"",
+    scales:{push:1, legs:1, hinge:1, core:1, cardio:1, mobility:1, steps:1},
+    rungs:{push:0, legs:0, hinge:0, core:0},
+    painFlags:{shoulder:0, knee:0, back:0},
+    lastEffort:null, rightCount:0,
+    days:{}, metrics:{}, achievements:{}, weekly:{}, dungeons:{}, painLog:[],
+    counters:{circuits:0, mobility:0, mealWalks:0, penalties:0, kegels:0, daysCleared:0, weeklyClears:0},
+    lastAnnounced:null
+  };
+}
+function mergeDefaults(s){
+  const d = defaultState();
+  for (const k in d){
+    if (s[k] === undefined) s[k] = d[k];
+    else if (d[k] && typeof d[k]==="object" && !Array.isArray(d[k]) && typeof s[k]==="object" && !Array.isArray(s[k]))
+      for (const kk in d[k]) if (s[k][kk] === undefined) s[k][kk] = d[k][kk];
+  }
+  return s;
+}
+let state;
+function load(){
+  try { const raw = localStorage.getItem(STORE_KEY); state = raw ? mergeDefaults(JSON.parse(raw)) : defaultState(); }
+  catch(e){ console.warn("load failed", e); state = defaultState(); }
+}
+function save(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){ console.warn("save failed", e); } }
+/* =====================================================================
+   QUEST ENGINE
+   ===================================================================== */
+function flagged(area){ return area && area!=="none" && (state.painFlags[area]||0) > 0; }
+function moveFor(fam){
+  const area = FAMILY_AREA[fam];
+  if (flagged(area) && GENTLE_SWAP[fam]) return GENTLE_SWAP[fam];
+  if (fam==="cardio") return "march";
+  let id = LADDERS[fam][clamp(state.rungs[fam]||0, 0, LADDERS[fam].length-1)];
+  if (id==="bird_dog" && flagged("shoulder")) id = "standing_bird_dog"; // keep weight off the shoulder
+  return id;
+}
+function amountFor(exId, fam){
+  const ex = EX[exId]; let sc = state.scales[fam] || 1;
+  if (fam==="mobility") sc = clamp(sc, .8, 1.5);
+  if (GENTLE_SWAP[fam]===exId) sc = Math.min(sc, 1); // swapped-in gentle moves never scale above base
+  let n = ex.base * sc;
+  if (ex.unit==="sec") n = Math.max(10, Math.round(n/5)*5); else n = Math.max(3, Math.round(n));
+  return n;
+}
+function fmtAmt(exId, n){
+  const ex = EX[exId], u = ex.unit==="sec" ? "s" : ex.unit==="min" ? " min" : ex.unit==="reps" ? " reps" : " "+ex.unit;
+  return n + u + (ex.each ? " / side" : "");
+}
+function stepGoal(){
+  let g = 4000 * (state.scales.steps||1);
+  if (flagged("knee")) g *= .85;
+  return clamp(Math.round(g/250)*250, 2500, 12000);
+}
+function circuitRounds(){ return state.level < 4 ? 1 : state.level < 10 ? 2 : 3; }
+function mealWalkTarget(){ return state.level >= 6 ? 3 : 2; }
+
+function mobilityItems(dayIdx){
+  let sh = ["pendulum","ext_rotation","scap_squeeze","wall_slide"];
+  if (flagged("shoulder")) sh = ["pendulum","scap_squeeze"];         // gentlest shoulder care only
+  if (moveFor("push")==="scap_squeeze") sh = sh.filter(x=>x!=="scap_squeeze");
+  const back = ["cat_cow","thoracic_rotation"];
+  const lower = flagged("knee") ? ["ankle_circles","calf_stretch"] : ["hip_flexor","calf_stretch","ankle_circles"];
+  let b = back[dayIdx % back.length];
+  if (b===moveFor("core")) b = back[(dayIdx+1) % back.length];
+  return [sh[dayIdx % sh.length], b, lower[dayIdx % lower.length]].map(id=>({ex:id, amt:fmtAmt(id, amountFor(id,"mobility"))}));
+}
+function circuitItems(){
+  return ["push","legs","hinge","core","cardio"].map(f=>{ const id = moveFor(f); return {ex:id, fam:f, amt:fmtAmt(id, amountFor(id,f))}; });
+}
+function genQuests(dk, penalty){
+  const dayIdx = Math.max(0, daysBetween(state.created, dk));
+  const q = [];
+  if (penalty) q.push({id:"penalty", cat:"Penalty Zone", title:"Penalty Zone: The Extra Five", kind:"check", target:1, progress:0, xp:XP.penalty, penalty:true,
+    items:[{ex:"walk", amt:"+5 min"}], note:"Yesterday's quest went uncleared. No punishment, just one extra easy 5-minute walk to get the engine turning again."});
+  const sg = stepGoal();
+  q.push({id:"steps", cat:"Vitality", title:"Daily Steps", kind:"steps", target:sg, progress:0, xp:XP.steps,
+    items:[{ex:"walk", amt:sg.toLocaleString()+" steps"}], note:"Enter today's total from your phone or watch. Walks of any kind count."});
+  const mw = mealWalkTarget();
+  q.push({id:"mealwalk", cat:"Blood Sugar", title:"Post-Meal Walks", kind:"counter", target:mw, progress:0, xp:XP.mealwalk, unit:"walks",
+    items:[{ex:"post_meal_walk", amt:(flagged("knee")?"5–10":"10")+" min × "+mw}], note:"Walk within ~30 min after a meal. Tap + after each one."});
+  const r = circuitRounds();
+  q.push({id:"circuit", cat:"Strength", title:"Strength Circuit", kind:"counter", target:r, progress:0, xp:XP.circuit, unit:r>1?"rounds":"round",
+    items:circuitItems(), note:"Do each move once in order = 1 round. Rest 60–90 s between moves or rounds as needed. Slow and controlled beats fast."});
+  q.push({id:"mobility", cat:"Mobility", title:"Mobility & Shoulder Care", kind:"check", target:1, progress:0, xp:XP.mobility,
+    items:mobilityItems(dayIdx), note:"Gentle range only. Great first thing in the morning or as a warm-up."});
+  q.push({id:"water", cat:"Habit", title:"Hydration", kind:"counter", target:8, progress:0, xp:XP.water, unit:"glasses",
+    items:[{ex:"water", amt:"8 × 8 oz"}], note:"Tap + per glass. Water or unsweetened drinks."});
+  const kr = clamp(10 + Math.floor(state.level/5)*2, 10, 15);
+  q.push({id:"kegel", cat:"Optional", title:"Pelvic Floor Training", kind:"counter", target:3, progress:0, xp:XP.kegel, unit:"sets", optional:true,
+    items:[{ex:"kegel", amt:"3 sets × "+kr+" (3s hold)"}], note:"Optional bonus. Can be done anywhere, sitting or lying down. Supports circulation and erectile function."});
+  return q;
+}
+function today(){ return state.days[todayKey()]; }
+
+/* Create today's record if missing (handles penalty, streak break, pain-flag decay). */
+function ensureDay(){
+  const t = todayKey();
+  if (state.days[t]) return false;
+  const y = addDays(t, -1);
+  const prior = Object.keys(state.days).filter(k => k < t).sort();
+  const penalty = prior.length > 0 && !(state.days[y] && state.days[y].completed);
+  if (state.lastCompleteDate && state.lastCompleteDate < y) state.streak = 0;
+  const last = prior.length ? prior[prior.length-1] : null;
+  const elapsed = last ? Math.max(1, daysBetween(last, t)) : 0;
+  for (const a in state.painFlags) state.painFlags[a] = Math.max(0, (state.painFlags[a]||0) - elapsed);
+  state.days[t] = {date:t, quests:genQuests(t, penalty), completed:false, penalty, rating:null, bonus:0};
+  save();
+  return true;
+}
+
+/* ---------- XP & leveling ---------- */
+function gainXP(n, why){
+  if (!n) return;
+  state.xp += n; state.totalXp += n;
+  toast("+"+n+" XP" + (why ? " · "+why : ""));
+  let leveled = false;
+  while (state.xp >= xpNeed(state.level)){
+    state.xp -= xpNeed(state.level);
+    const oldRank = rankOf(state.level);
+    state.level++; state.statPoints += 3; leveled = true;
+    notify("LEVEL UP", `<div style="font-size:42px;font-weight:900;text-shadow:0 0 18px var(--glow)">Lv. ${state.level}</div>
+      You have leveled up!<br><span class="hl">+3 stat points</span> are available on your Status window.`);
+    const nr = rankOf(state.level);
+    if (nr !== oldRank) notify("RANK UP", `Your rank has been re-evaluated.<br><span class="rank rank-${nr}" style="font-size:22px;margin:10px 0">RANK ${nr}</span><br>Job changed: <span class="hl">${JOBS[nr]}</span>`);
+  }
+  if (leveled) save();
+}
+
+/* ---------- quest progress ---------- */
+function setProgress(qid, value){
+  const d = today(); const q = d.quests.find(x=>x.id===qid); if (!q) return;
+  const before = q.progress;
+  q.progress = Math.max(0, value);
+  if (q.kind==="counter") q.progress = Math.min(q.progress, q.target + (qid==="water"||qid==="mealwalk" ? 4 : 0));
+  // side effects
+  if (qid==="steps"){ const m = state.metrics[d.date] || (state.metrics[d.date] = {}); m.steps = q.progress || undefined; if (!q.progress) delete m.steps; if (!Object.keys(m).length) delete state.metrics[d.date]; }
+  if (qid==="mealwalk" && q.progress > before) state.counters.mealWalks += (q.progress - before);
+  if (qid==="mealwalk" && q.progress < before) state.counters.mealWalks = Math.max(0, state.counters.mealWalks - (before - q.progress));
+  const nowDone = q.progress >= q.target;
+  if (nowDone && !q.done){
+    q.done = true;
+    if (!q.awarded){
+      q.awarded = true;
+      if (qid==="circuit") state.counters.circuits++;
+      if (qid==="mobility") state.counters.mobility++;
+      if (qid==="penalty") state.counters.penalties++;
+      if (qid==="kegel") state.counters.kegels++;
+      gainXP(q.xp, q.title);
+    }
+  } else if (!nowDone) q.done = false;
+  checkDayComplete();
+  afterChange();
+}
+function checkDayComplete(){
+  const d = today();
+  const req = d.quests.filter(q=>!q.optional);
+  if (d.completed || !req.every(q=>q.done)) return;
+  d.completed = true;
+  const y = addDays(d.date, -1);
+  state.streak = (state.lastCompleteDate === y) ? state.streak + 1 : (state.lastCompleteDate === d.date ? state.streak : 1);
+  state.lastCompleteDate = d.date;
+  state.bestStreak = Math.max(state.bestStreak, state.streak);
+  state.counters.daysCleared++;
+  const bonus = XP.allClearBase + Math.min(state.streak, 10) * 5;
+  d.bonus = bonus;
+  questCompleteFX();
+  setTimeout(()=>{
+    notify("DAILY QUEST COMPLETE", `You have completed the <span class="hl">[Daily Quest]</span>.<br><br>
+      <b>REWARDS</b><ul><li>Completion bonus: <span class="hl">+${bonus} XP</span>${state.streak>1?` (streak ×${state.streak})`:""}</li>
+      <li>Streak: <span class="hl">${state.streak} day${state.streak>1?"s":""}</span></li></ul>
+      Don't forget your <b>End-of-Day Report</b> so the System can tune tomorrow.`);
+    gainXP(bonus, "All clear");
+    afterChange();
+  }, 2700);
+}
+
+/* ---------- end-of-day report → adaptive difficulty ---------- */
+function submitReport(effort, pains, note){
+  const d = today(); if (d.rating) return;
+  const changes = [];
+  let inc = 0;
+  if (effort==="easy"){ inc = state.lastEffort==="easy" ? .10 : .05; }
+  else if (effort==="right"){ state.rightCount++; inc = (state.rightCount % 3 === 0) ? .03 : 0; }
+  else if (effort==="hard"){ inc = -.10; }
+  const famHit = {};
+  for (const p of pains){
+    state.painFlags[p] = 4; // next ~3 days are gentle for that area
+    state.painLog.push({date:d.date, area:p, note:note||"", source:"report"});
+    for (const f of FAMILIES) if (FAMILY_AREA[f]===p) famHit[f] = true;
+  }
+  for (const f of FAMILIES){
+    const old = state.scales[f];
+    let delta = famHit[f] ? Math.min(inc, 0) - .10 : inc;
+    state.scales[f] = clamp(+(old * (1 + delta)).toFixed(3), .6, 2.5);
+  }
+  if (inc>0) changes.push(`Volume <span class="hl">+${Math.round(inc*100)}%</span> tomorrow`);
+  if (inc<0) changes.push(`Volume <span class="hl">${Math.round(inc*100)}%</span> tomorrow. Recovery is part of training.`);
+  if (effort==="right" && inc===0) changes.push(`Holding steady. (Every 3rd "Right" day adds a small +3% bump.)`);
+  for (const p of pains) changes.push(`<b>${p.toUpperCase()}</b> flagged: gentler swaps for the next 3 days, that area −10%.`);
+  // progression ladder
+  for (const f in LADDERS){
+    const area = FAMILY_AREA[f];
+    if (state.scales[f] >= 1.4 && !flagged(area) && state.rungs[f] < LADDERS[f].length-1){
+      const from = EX[LADDERS[f][state.rungs[f]]].name; state.rungs[f]++; state.scales[f] = 1;
+      const to = EX[LADDERS[f][state.rungs[f]]].name;
+      changes.push(`<b>SKILL EVOLVED:</b> ${from} → <span class="hl">${to}</span>`);
+    } else if (state.scales[f] <= .7 && state.rungs[f] > 0){
+      const from = EX[LADDERS[f][state.rungs[f]]].name; state.rungs[f]--; state.scales[f] = 1.1;
+      changes.push(`Stepped back: ${from} → <span class="hl">${EX[LADDERS[f][state.rungs[f]]].name}</span> to rebuild.`);
+    }
+  }
+  state.lastEffort = effort;
+  d.rating = {effort, pains, note:note||"", at:new Date().toISOString()};
+  gainXP(10, "Report filed");
+  notify("SYSTEM ADJUSTMENT", `Report received.<ul>${changes.map(c=>`<li>${c}</li>`).join("") || "<li>No changes.</li>"}</ul>
+    ${pains.length ? `<span class="sub">Smart move reporting it. If pain is sharp, lingers more than a couple of days, or the shoulder feels unstable, check in with your doctor or PT.</span>` : ""}`);
+  afterChange();
+}
+
+/* Immediate pain report (Pain Stop Rule): flag + swap today's unfinished strength/mobility work. */
+function reportPainNow(area, note){
+  const d = today();
+  state.painFlags[area] = 4;
+  state.painLog.push({date:d.date, area, note:note||"", source:"stop-rule"});
+  for (const f of FAMILIES) if (FAMILY_AREA[f]===area) state.scales[f] = clamp(+(state.scales[f]*.9).toFixed(3), .6, 2.5);
+  const swapped = [];
+  const c = d.quests.find(q=>q.id==="circuit");
+  if (c && !c.done){ const old = c.items.map(i=>i.ex).join(); c.items = circuitItems(); if (old!==c.items.map(i=>i.ex).join()) swapped.push("Strength Circuit"); }
+  const m = d.quests.find(q=>q.id==="mobility");
+  if (m && !m.done){ m.items = mobilityItems(Math.max(0, daysBetween(state.created, d.date))); swapped.push("Mobility"); }
+  const s = d.quests.find(q=>q.id==="steps");
+  if (s && !s.done && area==="knee"){ s.target = stepGoal(); s.items[0].amt = s.target.toLocaleString()+" steps"; swapped.push("Steps target"); }
+  notify("PAIN LOGGED", `Stop the movement that hurt. You did the right thing.<br><br>
+    <b>${area.toUpperCase()}</b> is flagged for 3 days. ${swapped.length ? "Swapped to gentler versions: <span class='hl'>"+swapped.join(", ")+"</span>." : ""}
+    <br><br><span class="sub">If pain is sharp, comes with swelling, numbness, or chest pain, or doesn't settle, contact your doctor.</span>`);
+  afterChange();
+}
+
+/* =====================================================================
+   WEEKLY MISSIONS
+   ===================================================================== */
+function weekDays(){ const ws = weekStart(todayKey()); return Array.from({length:7}, (_,i)=>addDays(ws, i)); }
+function weeklyMissions(){
+  const days = weekDays();
+  const dd = days.map(k=>state.days[k]).filter(Boolean);
+  const qd = (d,id) => (d.quests.find(q=>q.id===id) || {});
+  const walkDays = dd.filter(d => qd(d,"steps").done || (qd(d,"mealwalk").progress||0) >= 1).length;
+  const steps = days.reduce((a,k)=>a + ((state.metrics[k]||{}).steps||0), 0);
+  const stepT = Math.max(20000, Math.round(stepGoal()*6.5/5000)*5000);
+  const circ = dd.filter(d=>qd(d,"circuit").done).length;
+  const meals = dd.reduce((a,d)=>a + (qd(d,"mealwalk").progress||0), 0);
+  const logs = days.filter(k=>state.metrics[k] && Object.keys(state.metrics[k]).some(f=>f!=="steps")).length;
+  const keg = dd.filter(d=>qd(d,"kegel").done).length;
+  const sleep = days.filter(k=>(state.metrics[k]||{}).sleep>=7).length;
+  return [
+    {id:"walk5", name:"Walk 5 days this week", cur:walkDays, target:5, xp:100},
+    {id:"steps", name:`Hit ${stepT.toLocaleString()} steps this week`, cur:steps, target:stepT, xp:100},
+    {id:"circ3", name:"Complete 3 Strength Circuits", cur:circ, target:3, xp:80},
+    {id:"meal10", name:"10 post-meal walks", cur:meals, target:10, xp:80},
+    {id:"sleep4", name:"Log 7+ hours of sleep on 4 nights", cur:sleep, target:4, xp:60},
+    {id:"log4", name:"Log your metrics on 4 days", cur:logs, target:4, xp:50},
+    {id:"keg4", name:"Pelvic floor training on 4 days (optional)", cur:keg, target:4, xp:40}
+  ];
+}
+function checkWeekly(){
+  const wk = weekStart(todayKey());
+  const claimed = state.weekly[wk] || (state.weekly[wk] = {});
+  for (const m of weeklyMissions()){
+    if (m.cur >= m.target && !claimed[m.id]){
+      claimed[m.id] = true; state.counters.weeklyClears++;
+      notify("MISSION CLEARED", `<span class="hl">[Weekly Mission]</span> ${esc(m.name)}<br>has been completed.<br><br>Reward: <span class="hl">+${m.xp} XP</span>`);
+      gainXP(m.xp, "Weekly mission");
+    }
+  }
+}
+function checkAchievements(){
+  for (const a of ACH){
+    if (!state.achievements[a.id] && a.test(state)){
+      state.achievements[a.id] = todayKey();
+      if (a.title && !state.title) state.title = a.title;
+      notify("ACHIEVEMENT", `<span class="hl">[${esc(a.name)}]</span><br>${esc(a.desc)}${a.title ? `<br><br>Title acquired: <span class="hl">“${esc(a.title)}”</span>` : ""}`);
+    }
+  }
+}
+function clearDungeon(id){
+  const g = DUNGEONS.find(x=>x.id===id); if (!g || state.dungeons[id]) return;
+  state.dungeons[id] = todayKey(); state.statPoints += 2;
+  notify("DUNGEON CLEARED", `<span class="hl">${esc(g.name)}</span> has been cleared.<br><br>Rewards: <span class="hl">+${g.xp} XP</span>, <span class="hl">+2 stat points</span>`);
+  gainXP(g.xp, "Dungeon");
+  afterChange();
+}
+
+/* =====================================================================
+   NOTIFICATIONS / FX
+   ===================================================================== */
+const noteQ = []; let noteOpen = false;
+function notify(title, html, buttons){ noteQ.push({title, html, buttons}); if (!noteOpen) nextNote(); }
+function nextNote(){
+  const n = noteQ.shift();
+  if (!n){ noteOpen = false; $("#modalBg").classList.remove("open"); return; }
+  noteOpen = true;
+  $("#mTitle").textContent = n.title; $("#mBody").innerHTML = n.html;
+  const bb = $("#mBtns"); bb.innerHTML = "";
+  (n.buttons || [{label:"OK", cls:"primary"}]).forEach(b=>{
+    const el = document.createElement("button"); el.className = "btn " + (b.cls||""); el.textContent = b.label;
+    el.onclick = () => { let keep = false; if (b.fn) keep = b.fn() === false; if (!keep) nextNote(); };
+    bb.appendChild(el);
+  });
+  const m = $("#modal"); m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
+  $("#modalBg").classList.add("open");
+}
+function toast(msg){ const t = document.createElement("div"); t.textContent = msg; $("#toast").appendChild(t); setTimeout(()=>t.remove(), 2300); }
+function questCompleteFX(){
+  const o = $("#qc"); $("#qcText").innerHTML = "<small>[ DAILY QUEST ]</small>QUEST COMPLETE";
+  o.classList.remove("show"); void o.offsetWidth; o.classList.add("show");
+  setTimeout(()=>o.classList.remove("show"), 2900);
+}
+function afterChange(){ checkWeekly(); checkAchievements(); save(); render(); }
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+let curTab = "status", libFilter = "All", chartMetric = "weight";
+let reportDraft = {effort:null, pains:[]};
+
+function exLink(id){ return `<a class="exlink" data-act="ex" data-id="${id}">${esc(EX[id].name)}</a>`; }
+function latestMetric(f){ const ks = Object.keys(state.metrics).sort().reverse(); for (const k of ks) if (state.metrics[k][f] != null) return {date:k, v:state.metrics[k][f]}; return null; }
+
+function render(){
+  $("#dateChip").textContent = prettyDate(todayKey()) + (params.get("date") ? " (test)" : "");
+  $$("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===curTab));
+  $$("section.tab").forEach(s=>s.classList.toggle("on", s.id==="tab-"+curTab));
+  const d = today();
+  $("#qDot").innerHTML = d && !d.completed ? '<span class="badge-dot"></span>' : "";
+  renderStatus(); renderQuests(); renderMissions(); renderLog(); renderLibrary(); renderSettings();
+}
+
+function renderStatus(){
+  const s = state, rk = rankOf(s.level), need = xpNeed(s.level), d = today();
+  const req = d.quests.filter(q=>!q.optional), done = req.filter(q=>q.done).length;
+  const en = latestMetric("energy"), sl = latestMetric("sleep");
+  const streakAlive = s.lastCompleteDate === todayKey() || s.lastCompleteDate === addDays(todayKey(), -1);
+  const streak = streakAlive ? s.streak : 0;
+  $("#tab-status").innerHTML = `
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle"><span>Status</span></div>
+      <div class="status-top">
+        <div class="kv">
+          <b>Name</b><span>${esc(s.name)} <button class="btn sm" data-act="rename" title="Edit name">✎</button></span>
+          <b>Job</b><span>${JOBS[rk]}</span>
+          <b>Title</b><span>${s.title ? "“"+esc(s.title)+"”" : "<span class='mute'>None</span>"}</span>
+          <b>Day</b><span>${daysBetween(s.created, todayKey())+1}</span>
+        </div>
+        <div class="lvlbox"><div class="lbl">LEVEL</div><div class="num">${s.level}</div><span class="rank rank-${rk}">RANK ${rk}</span></div>
+      </div>
+      <div class="barlbl"><span>EXP</span><span>${s.xp} / ${need}</span></div>
+      <div class="bar"><i style="width:${Math.min(100, s.xp/need*100)}%"></i></div>
+      <div class="barlbl"><span>HP · ENERGY</span><span>${en ? en.v+"/10" : "log energy"}</span></div>
+      <div class="bar hp"><i style="width:${en ? en.v*10 : 0}%"></i></div>
+      <div class="barlbl"><span>MP · REST</span><span>${sl ? sl.v+" h sleep" : "log sleep"}</span></div>
+      <div class="bar mp"><i style="width:${sl ? Math.min(100, sl.v/8*100) : 0}%"></i></div>
+      <div class="stats">
+        ${Object.keys(s.stats).map(k=>`<div class="stat"><span class="nm">${k}</span><span class="val">${s.stats[k]}</span>
+          <span class="desc">${STAT_INFO[k]}</span>${s.statPoints>0 ? `<button class="plus" data-act="stat" data-k="${k}">+</button>` : ""}</div>`).join("")}
+      </div>
+      <div class="points">Available ability points: <b>${s.statPoints}</b></div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="ptitle"><span>Today</span></div>
+        <div class="dq-head"><div class="t">[Daily Quest]</div><div class="goal">${done} / ${req.length} required quests cleared${d.completed ? " · <span style='color:var(--good)'>ALL CLEAR</span>" : ""}</div></div>
+        <div class="bar good"><i style="width:${req.length ? done/req.length*100 : 0}%"></i></div>
+        <div class="streak">
+          <div><div class="n ${streak>=3?"flame":""}">${streak}</div><div class="l">Streak</div></div>
+          <div><div class="n">${s.bestStreak}</div><div class="l">Best</div></div>
+          <div><div class="n">${s.counters.daysCleared}</div><div class="l">Days Cleared</div></div>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn primary" data-act="tab" data-tab="quests">Open Daily Quest</button>
+          <button class="btn" data-act="tab" data-tab="log">Log Metrics</button></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>Player Notes</span></div>
+        <div class="sub" style="font-size:13px">
+          ${flagged("shoulder")||flagged("knee")||flagged("back") ? `<div class="alert"><b>GENTLE MODE:</b> ${["shoulder","knee","back"].filter(flagged).map(a=>a.toUpperCase()+" ("+(state.painFlags[a]-1>0?state.painFlags[a]-1+" more day(s)":"ends today")+")").join(", ")}. Swapped exercises are active.</div>` : ""}
+          Goal: <b style="color:var(--text)">more energy, mobility &amp; circulation</b>.<br>
+          Constraints loaded: right rotator cuff (no overhead / no dips / no floor push-ups yet), knees (no jumping, no deep loaded squats), mid-back (no sit-ups/crunches).<br>
+          Steps target today: <b style="color:var(--text)">${stepGoal().toLocaleString()}</b> · Circuit: <b style="color:var(--text)">${circuitRounds()} round(s)</b>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function questHTML(q){
+  let ctrl = "";
+  if (q.kind==="counter"){
+    ctrl = `<div class="counter"><button data-act="dec" data-q="${q.id}">−</button><span class="cv">${q.progress}/${q.target}</span><button data-act="inc" data-q="${q.id}">+</button></div><span class="progress-pill">${q.unit||""}</span>`;
+  } else if (q.kind==="check"){
+    ctrl = `<label class="chk"><input type="checkbox" data-act="check" data-q="${q.id}" ${q.done?"checked":""}><span class="box"></span>${q.done?"Cleared":"Mark complete"}</label>`;
+  } else if (q.kind==="steps"){
+    ctrl = `<input type="number" inputmode="numeric" min="0" step="100" class="stepin" data-steps="${q.id}" value="${q.progress||""}" placeholder="steps">
+      <button class="btn sm" data-act="addsteps" data-n="500">+500</button><button class="btn sm" data-act="addsteps" data-n="1000">+1000</button>
+      <span class="progress-pill">${(q.progress||0).toLocaleString()} / ${q.target.toLocaleString()}</span>`;
+  }
+  const pct = Math.min(100, (q.progress||0)/q.target*100);
+  return `<div class="quest ${q.done?"done":""} ${q.penalty?"penalty":""} ${q.optional?"optional":""}">
+    <div class="qhead"><span class="qcat">${esc(q.cat)}</span><span class="qtitle">${esc(q.title)}</span><span class="qxp">+${q.xp} XP</span></div>
+    <ul class="qitems">${q.items.map(i=>`<li>${exLink(i.ex)}<span class="amt">${esc(i.amt)}</span></li>`).join("")}</ul>
+    ${q.note ? `<div class="qnote">${esc(q.note)}</div>` : ""}
+    <div class="qctrl">${ctrl}</div>
+    ${q.kind!=="check" ? `<div class="bar good" style="height:5px;margin-top:8px"><i style="width:${pct}%"></i></div>` : ""}
+  </div>`;
+}
+
+function renderQuests(){
+  const d = today(), r = d.rating;
+  const effortBtns = [["easy","Too easy"],["right","Just right"],["hard","Too hard"]];
+  $("#tab-quests").innerHTML = `
+  <div class="panel">
+    <div class="ptitle"><span>Quest Info</span></div>
+    <div class="dq-head"><div class="t">[Daily Quest: Preparations to Become Strong]</div>
+      <div class="goal">${prettyDate(d.date)} · Lv.${state.level} difficulty · ${d.quests.filter(q=>!q.optional).length} required + ${d.quests.filter(q=>q.optional).length} optional</div></div>
+    <div class="alert red"><b>⚠ PAIN STOP RULE.</b> Sharp pain, joint pain, or <b>any right-shoulder pain</b> = stop that exercise and report it.
+      Dizzy, shaky, sweaty, or chest discomfort = stop, rest, and check your blood sugar; get help if it doesn't pass.
+      <div style="margin-top:8px"><button class="btn danger sm" data-act="painnow">Report pain now</button></div></div>
+    ${d.penalty ? `<div class="alert"><b>PENALTY ZONE ACTIVE.</b> Yesterday slipped by, and that's fine. One small extra quest has appeared. Clear it and keep going.</div>` : ""}
+    ${d.completed ? `<div class="allclear">✦ ALL REQUIRED QUESTS CLEARED ✦</div>` : ""}
+    ${d.quests.map(questHTML).join("")}
+    <div class="mute" style="text-align:center;margin-top:8px">CAUTION: An uncleared Daily Quest summons a (gentle) Penalty Zone tomorrow.</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>End-of-Day Report</span></div>
+    ${r ? `<div class="sub" style="text-align:center">Report filed: effort <b style="color:var(--text)">${({easy:"Too easy",right:"Just right",hard:"Too hard"})[r.effort]}</b>,
+        pain: <b style="color:var(--text)">${r.pains.length ? r.pains.join(", ") : "none"}</b>. Tomorrow's quests have been tuned.</div>` : `
+    <div class="sub" style="margin-bottom:8px">How did today's work feel overall?</div>
+    <div class="seg" id="effortSeg">${effortBtns.map(([k,l])=>`<button data-act="effort" data-v="${k}" class="${reportDraft.effort===k?"on":""}">${l}</button>`).join("")}</div>
+    <div class="sub" style="margin:12px 0 8px">Any pain or warning signs today?</div>
+    <div class="seg">
+      <button data-act="pain" data-v="none" class="${reportDraft.pains.length===0?"on":""}">None</button>
+      ${["shoulder","knee","back"].map(p=>`<button data-act="pain" data-v="${p}" class="p ${reportDraft.pains.includes(p)?"on":""}">${p[0].toUpperCase()+p.slice(1)}</button>`).join("")}
+    </div>
+    <input id="reportNote" style="margin-top:10px" placeholder="Optional note (what felt off, what felt great)">
+    <div class="row" style="margin-top:10px"><span class="mute">Too easy → volume up 5–10% · Too hard → down 10% · Pain → gentler swaps</span><span class="spacer"></span>
+      <button class="btn primary" data-act="report" ${reportDraft.effort?"":"disabled"}>Submit Report (+10 XP)</button></div>`}
+  </div>`;
+}
+
+function renderMissions(){
+  const wk = weekStart(todayKey()), claimed = state.weekly[wk] || {};
+  const ms = weeklyMissions();
+  $("#tab-missions").innerHTML = `
+  <div class="panel">
+    <div class="ptitle"><span>Weekly Missions</span></div>
+    <div class="sub" style="text-align:center;margin-bottom:6px">Week of ${prettyDate(wk)} – ${prettyDate(addDays(wk,6))} · resets Monday</div>
+    ${ms.map(m=>`<div class="mission ${claimed[m.id]?"claimed":""}"><div class="mt">${esc(m.name)}</div><div class="mx">+${m.xp} XP</div>
+      <div class="bar good"><i style="width:${Math.min(100, m.cur/m.target*100)}%"></i></div>
+      <div class="mute">${Math.min(m.cur, m.target).toLocaleString()} / ${m.target.toLocaleString()}</div></div>`).join("")}
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Dungeons</span></div>
+    <div class="sub" style="text-align:center;margin-bottom:10px">Milestone challenges. Gates open as you level up. Attempt one on a fresh day, never through pain.</div>
+    ${DUNGEONS.map(g=>{
+      const locked = state.level < g.lvl, cleared = state.dungeons[g.id];
+      return `<div class="gate ${locked?"locked":""} ${cleared?"cleared":""} ${g.red?"red":""}"><div class="portal"></div>
+        <div class="gi"><div class="gn">${esc(g.name)}</div><div class="gr">${g.rank}-RANK GATE · +${g.xp} XP · +2 PTS</div>
+        <div class="sub" style="font-size:13px">${locked ? "Unlocks at Lv. "+g.lvl : esc(g.task)}</div></div>
+        ${cleared ? `<span class="mute">Cleared<br>${prettyDate(cleared)}</span>` : locked ? `<span class="mute">🔒</span>` : `<button class="btn primary sm" data-act="gate" data-id="${g.id}">Enter</button>`}
+      </div>`;}).join("")}
+  </div>`;
+}
+
+/* ---------- charts ---------- */
+const METRIC_DEF = {
+  weight:{label:"Weight", unit:"lb", color:"#5cc8ff"},
+  glucose:{label:"Blood Glucose", unit:"mg/dL", color:"#ff7b8f", band:[80,130]},
+  steps:{label:"Steps", unit:"", color:"#52f0b4"},
+  sleep:{label:"Sleep", unit:"h", color:"#8f9bff"},
+  energy:{label:"Energy", unit:"/10", color:"#ffcf5c"},
+  libido:{label:"Mood/Libido", unit:"/10", color:"#c79bff"},
+  waist:{label:"Waist", unit:"in", color:"#7fe3ff"}
+};
+function chartSVG(key){
+  const def = METRIC_DEF[key];
+  const pts = Object.keys(state.metrics).sort().filter(k=>state.metrics[k][key]!=null).slice(-60).map(k=>({k, y:+state.metrics[k][key]}));
+  if (pts.length < 2) return `<div class="mute" style="padding:30px;text-align:center">Log at least 2 days of ${def.label.toLowerCase()} to see your trend line.</div>`;
+  const W=340, H=150, L=34, R=10, T=12, B=22;
+  const t0 = parseKey(pts[0].k).getTime(), t1 = parseKey(pts[pts.length-1].k).getTime() || t0+1;
+  let ymin = Math.min(...pts.map(p=>p.y)), ymax = Math.max(...pts.map(p=>p.y));
+  if (def.band){ ymin = Math.min(ymin, def.band[0]-10); ymax = Math.max(ymax, def.band[1]+10); }
+  const pad = (ymax-ymin)*.12 || 1; ymin -= pad; ymax += pad;
+  const X = t => L + (t1===t0 ? (W-L-R)/2 : (t-t0)/(t1-t0)*(W-L-R));
+  const Y = v => T + (1-(v-ymin)/(ymax-ymin))*(H-T-B);
+  const xy = pts.map(p=>[X(parseKey(p.k).getTime()), Y(p.y)]);
+  const line = xy.map(p=>p.map(n=>n.toFixed(1)).join(",")).join(" ");
+  const area = `M${xy[0][0]},${H-B} L` + xy.map(p=>p.join(",")).join(" L") + ` L${xy[xy.length-1][0]},${H-B} Z`;
+  const fmt = v => Math.abs(v)>=1000 ? Math.round(v).toLocaleString() : (ymax-ymin>20 ? Math.round(v) : Math.round(v*10)/10);
+  const grid = [0,.5,1].map(f=>{ const v = ymin + f*(ymax-ymin), y = Y(v); return `<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="rgba(90,190,255,.12)"/><text x="${L-4}" y="${y+3}" fill="#5d7799" font-size="9" text-anchor="end">${fmt(v)}</text>`; }).join("");
+  const band = def.band ? `<rect x="${L}" width="${W-L-R}" y="${Y(def.band[1])}" height="${Y(def.band[0])-Y(def.band[1])}" fill="rgba(82,240,180,.08)" stroke="rgba(82,240,180,.25)" stroke-dasharray="3 3"/>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${def.label} trend">
+    <defs><linearGradient id="g_${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${def.color}" stop-opacity=".35"/><stop offset="1" stop-color="${def.color}" stop-opacity="0"/></linearGradient>
+    <filter id="glow_${key}"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    ${grid}${band}<path d="${area}" fill="url(#g_${key})"/>
+    <polyline points="${line}" fill="none" stroke="${def.color}" stroke-width="2" filter="url(#glow_${key})"/>
+    ${xy.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="#fff" stroke="${def.color}"/>`).join("")}
+    <text x="${L}" y="${H-6}" fill="#5d7799" font-size="9">${pts[0].k.slice(5)}</text>
+    <text x="${W-R}" y="${H-6}" fill="#5d7799" font-size="9" text-anchor="end">${pts[pts.length-1].k.slice(5)}</text>
+  </svg>`;
+}
+function chartStats(key){
+  const def = METRIC_DEF[key];
+  const vals = Object.keys(state.metrics).sort().map(k=>state.metrics[k][key]).filter(v=>v!=null).map(Number);
+  if (!vals.length) return "";
+  const last = vals[vals.length-1], first = vals[0], l7 = vals.slice(-7), avg = l7.reduce((a,b)=>a+b,0)/l7.length;
+  const f = v => Math.abs(v)>=1000 ? Math.round(v).toLocaleString() : Math.round(v*10)/10;
+  const delta = last-first;
+  return `<div class="chart-stats"><span>Latest: <b>${f(last)} ${def.unit}</b></span><span>Avg (last ${l7.length}): <b>${f(avg)}</b></span>
+    <span>Since first log: <b>${delta>0?"+":""}${f(delta)}</b></span>${def.band ? `<span>Shaded band = 80–130 mg/dL, a common fasting target. Your doctor's target may differ.</span>` : ""}</div>`;
+}
+const LOG_FIELDS = [
+  ["weight","Weight (lb)","0.1"],["steps","Steps","1"],["glucose","Glucose (mg/dL)","1"],["sleep","Sleep (hrs)","0.25"],
+  ["energy","Energy (1–10)","1"],["libido","Mood/Libido (1–10)","1"],["waist","Waist (in)","0.25"]
+];
+function renderLog(){
+  const keys = Object.keys(state.metrics).sort().reverse();
+  const cur = state.metrics[todayKey()] || {};
+  $("#tab-log").innerHTML = `
+  <div class="panel">
+    <div class="ptitle"><span>Log Metrics</span></div>
+    <div class="form" id="logForm">
+      <div><label>Date</label><input type="date" id="lf_date" value="${todayKey()}"></div>
+      ${LOG_FIELDS.map(([k,l,st])=>`<div><label>${l}</label><input type="number" inputmode="decimal" step="${st}" id="lf_${k}" value="${cur[k]!=null?cur[k]:""}"></div>`).join("")}
+      <div><label>Glucose type</label><select id="lf_gtype">${["fasting","before meal","2h after meal","random"].map(t=>`<option ${cur.gtype===t?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div style="grid-column:1/-1"><label>Note</label><input id="lf_note" value="${esc(cur.note||"")}" placeholder="optional"></div>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="mute">Blank fields are left empty. Choosing a date loads that day's entry for editing.</span><span class="spacer"></span><button class="btn primary" data-act="savelog">Save Entry</button></div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Trends</span></div>
+    <div class="chips">${Object.keys(METRIC_DEF).map(k=>`<button data-act="chart" data-k="${k}" class="${chartMetric===k?"on":""}">${METRIC_DEF[k].label}</button>`).join("")}</div>
+    <div class="chart-wrap">${chartSVG(chartMetric)}</div>${chartStats(chartMetric)}
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Records</span></div>
+    ${keys.length ? `<div class="tablewrap"><table class="log"><tr><th>Date</th><th>Wt</th><th>Steps</th><th>Gluc</th><th>Sleep</th><th>Energy</th><th>Lib</th><th>Waist</th><th></th></tr>
+      ${keys.slice(0,45).map(k=>{const m=state.metrics[k]; const c=v=>v!=null?v:"–"; return `<tr><td>${k}</td><td>${c(m.weight)}</td><td>${m.steps!=null?m.steps.toLocaleString():"–"}</td>
+        <td>${c(m.glucose)}${m.glucose!=null&&m.gtype?`<span class="mute"> ${m.gtype==="fasting"?"F":m.gtype==="2h after meal"?"PM":""}</span>`:""}</td><td>${c(m.sleep)}</td><td>${c(m.energy)}</td><td>${c(m.libido)}</td><td>${c(m.waist)}</td>
+        <td><button class="btn sm danger" data-act="dellog" data-k="${k}" title="Delete">✕</button></td></tr>`;}).join("")}</table></div>` : `<div class="mute">No entries yet. Log your starting weight, waist, and a fasting glucose to set your baseline.</div>`}
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Achievements &amp; Titles</span></div>
+    <div class="ach">${ACH.map(a=>`<div class="achc ${state.achievements[a.id]?"got":""}"><div class="an">${state.achievements[a.id]?"★":"☆"} ${esc(a.name)}</div><div class="ad">${esc(a.desc)}</div>
+      ${a.title?`<div class="at">Title: “${esc(a.title)}”</div>`:""}${state.achievements[a.id]?`<div class="mute">${state.achievements[a.id]}</div>`:""}</div>`).join("")}</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Pain Log</span></div>
+    ${state.painLog.length ? `<div class="tablewrap"><table class="log"><tr><th>Date</th><th>Area</th><th>Source</th><th style="text-align:left">Note</th></tr>
+      ${state.painLog.slice().reverse().slice(0,30).map(p=>`<tr><td>${p.date}</td><td>${p.area}</td><td>${p.source}</td><td style="text-align:left;white-space:normal">${esc(p.note)}</td></tr>`).join("")}</table></div>`
+      : `<div class="mute">No pain reported. Keep it that way: stop at the first sharp pain.</div>`}
+  </div>`;
+}
+
+function renderLibrary(){
+  const cats = ["All","Strength","Shoulder Care","Core","Mobility","Knee-Friendly","Cardio","Habit"];
+  const curIds = new Set(Object.keys(LADDERS).map(moveFor).concat([moveFor("cardio")]));
+  const ladderOf = id => Object.keys(LADDERS).find(f=>LADDERS[f].includes(id));
+  const list = Object.keys(EX).filter(id=>libFilter==="All" || EX[id].cat===libFilter);
+  $("#tab-library").innerHTML = `
+  <div class="panel">
+    <div class="ptitle"><span>Skill Library</span></div>
+    <div class="sub" style="margin-bottom:10px">Every move uses bodyweight, a sturdy chair, a wall, or a counter. Nothing goes overhead, nothing jumps, and there are no sit-ups. <span style="color:var(--good)">CURRENT</span> = what the System is assigning you now.</div>
+    <div class="chips">${cats.map(c=>`<button data-act="lib" data-c="${c}" class="${libFilter===c?"on":""}">${c}</button>`).join("")}</div>
+    <div class="lib">${list.map(id=>{ const e = EX[id], f = ladderOf(id);
+      return `<div class="excard"><h4>${esc(e.name)}${curIds.has(id)?'<span class="cur">CURRENT</span>':""}</h4>
+        <div class="tags">${esc(e.cat)} · base ${e.base} ${e.unit}${e.each?" / side":""}</div>
+        <p>${esc(e.how)}</p><div class="safety">⚠ ${esc(e.safety)}</div>
+        ${f ? `<div class="ladder">Progression: ${LADDERS[f].map((x,i)=>i===state.rungs[f]?`<b style="color:var(--glow2)">${esc(EX[x].name)}</b>`:esc(EX[x].name)).join(" → ")}</div>` : ""}
+      </div>`;}).join("")}</div>
+  </div>`;
+}
+
+function renderSettings(){
+  const titles = ACH.filter(a=>a.title && state.achievements[a.id]).map(a=>a.title);
+  $("#tab-settings").innerHTML = `
+  <div class="panel">
+    <div class="ptitle"><span>Player Settings</span></div>
+    <div class="form" style="grid-template-columns:1fr 1fr">
+      <div><label>Player name</label><input id="set_name" value="${esc(state.name)}" maxlength="30"></div>
+      <div><label>Equipped title</label><select id="set_title"><option value="">None</option>${titles.map(t=>`<option ${state.title===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="spacer"></span><button class="btn primary" data-act="saveset">Save</button></div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Backup &amp; Share</span></div>
+    <div class="sub">All data lives only in this browser (localStorage). Export a backup regularly, especially on a phone. The JSON file can also be shared with your trainer for review.</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" data-act="export">Export JSON</button>
+      <button class="btn" data-act="copyjson">Copy JSON</button>
+      <button class="btn" data-act="importfile">Import JSON file</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+    </div>
+    <textarea id="importText" rows="3" style="margin-top:10px" placeholder="…or paste exported JSON here, then press Import Pasted"></textarea>
+    <div class="row" style="margin-top:8px"><span class="spacer"></span><button class="btn" data-act="importpaste">Import Pasted</button></div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>System Internals</span></div>
+    <div class="sub">How the System is currently tuning you. Volumes scale by your End-of-Day Reports; at ×1.40 a movement evolves to the next progression and resets to ×1.00.</div>
+    <div class="tablewrap" style="margin-top:8px"><table class="log"><tr><th>Family</th><th>Volume</th><th>Current move</th><th>Flag</th></tr>
+      ${FAMILIES.map(f=>`<tr><td>${FAMILY_LABEL[f]}</td><td>×${(+state.scales[f]).toFixed(2)}</td>
+        <td>${f==="steps"?stepGoal().toLocaleString()+" steps":f==="mobility"?"rotating":esc(EX[moveFor(f)].name)}</td>
+        <td>${flagged(FAMILY_AREA[f])?"<span style='color:var(--warn)'>gentle</span>":"–"}</td></tr>`).join("")}</table></div>
+    <div class="mute" style="margin-top:8px">Pain flags (days left): shoulder ${state.painFlags.shoulder}, knee ${state.painFlags.knee}, back ${state.painFlags.back} · Total XP ${state.totalXp.toLocaleString()}</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Rules of the System</span></div>
+    <div class="sub" style="font-size:13px;line-height:1.6">
+      <b>Medical:</b> This is a motivation tool, not medical advice. Clear the plan with your doctor before starting and whenever you change diabetes medications.
+      If you take insulin or a sulfonylurea, ask about checking your sugar around exercise and carry a fast-acting sugar.<br>
+      <b>Pain Stop Rule:</b> sharp pain, joint pain, or any right-shoulder pain = stop and log it. Chest pain, unusual shortness of breath, or dizziness = stop and seek care.<br>
+      <b>Shoulder:</b> no overhead pressing or loaded overhead work, no dips, no kipping, no behind-the-neck moves, and no floor push-ups yet.<br>
+      <b>Knees:</b> no jumping or running yet, and no deep loaded squats. <b>Back:</b> no sit-ups or crunches.<br>
+      <b>Diabetes:</b> check your feet daily, wear supportive shoes, and treat post-meal walks as your secret weapon.
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Danger Zone</span></div>
+    <div class="row"><span class="sub">Erase all progress on this device (export first!).</span><span class="spacer"></span><button class="btn danger" data-act="reset">Reset All Data</button></div>
+  </div>`;
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+function download(name, text){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function importData(text){
+  let obj;
+  try { obj = JSON.parse(text); } catch(e){ notify("IMPORT FAILED", "That doesn't look like valid JSON."); return; }
+  if (!obj || typeof obj!=="object" || typeof obj.level!=="number" || !obj.days){ notify("IMPORT FAILED", "This file isn't a System backup."); return; }
+  notify("CONFIRM IMPORT", `Replace current data with this backup?<br><span class="sub">Lv.${obj.level} · ${Object.keys(obj.days).length} days · ${Object.keys(obj.metrics||{}).length} metric entries</span>`, [
+    {label:"Replace", cls:"warn", fn:()=>{ state = mergeDefaults(obj); ensureDay(); save(); render(); toast("Backup imported"); }},
+    {label:"Cancel"}
+  ]);
+}
+function saveLog(){
+  const dk = $("#lf_date").value || todayKey();
+  const m = Object.assign({}, state.metrics[dk] || {});
+  for (const [k] of LOG_FIELDS){
+    const v = $("#lf_"+k).value.trim();
+    if (v==="") delete m[k]; else { let n = parseFloat(v); if (k==="energy"||k==="libido") n = clamp(Math.round(n),1,10); if (!isNaN(n)) m[k] = n; }
+  }
+  if (m.glucose!=null) m.gtype = $("#lf_gtype").value; else delete m.gtype;
+  const note = $("#lf_note").value.trim(); if (note) m.note = note; else delete m.note;
+  if (Object.keys(m).length) state.metrics[dk] = m; else delete state.metrics[dk];
+  toast("Entry saved · " + dk);
+  if (dk===todayKey()){
+    const q = today().quests.find(x=>x.id==="steps");
+    if (q && (m.steps||0) !== q.progress){ setProgress("steps", m.steps||0); return; }
+  }
+  afterChange();
+}
+function fillLogForm(dk){
+  const m = state.metrics[dk] || {};
+  for (const [k] of LOG_FIELDS) $("#lf_"+k).value = m[k]!=null ? m[k] : "";
+  $("#lf_note").value = m.note || ""; if (m.gtype) $("#lf_gtype").value = m.gtype;
+}
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[data-act],[data-tab]"); if (!t) return;
+  const act = t.dataset.act;
+  if (!act && t.dataset.tab){ curTab = t.dataset.tab; render(); window.scrollTo(0,0); return; }
+  const d = today();
+  switch(act){
+    case "tab": curTab = t.dataset.tab; render(); window.scrollTo(0,0); break;
+    case "inc": { const q = d.quests.find(x=>x.id===t.dataset.q); setProgress(q.id, q.progress+1); break; }
+    case "dec": { const q = d.quests.find(x=>x.id===t.dataset.q); setProgress(q.id, q.progress-1); break; }
+    case "check": setProgress(t.dataset.q, t.checked ? 1 : 0); break;
+    case "addsteps": { const q = d.quests.find(x=>x.id==="steps"); setProgress("steps", (q.progress||0) + (+t.dataset.n)); break; }
+    case "stat": if (state.statPoints>0){ state.stats[t.dataset.k]++; state.statPoints--; save(); render(); } break;
+    case "rename":
+      notify("PLAYER NAME", `<input id="nameIn" value="${esc(state.name)}" maxlength="30" style="text-align:center">`, [
+        {label:"Confirm", cls:"primary", fn:()=>{ const v = $("#nameIn").value.trim(); if (v) state.name = v; save(); render(); }}, {label:"Cancel"}]);
+      setTimeout(()=>{ const i = $("#nameIn"); if (i){ i.focus(); i.select(); } }, 50);
+      break;
+    case "ex": { const x = EX[t.dataset.id];
+      notify(x.name, `<div class="tags" style="font-size:11px;letter-spacing:.15em;color:var(--glow)">${esc(x.cat).toUpperCase()}</div>
+        <p style="text-align:left">${esc(x.how)}</p><div class="safety" style="text-align:left">⚠ ${esc(x.safety)}</div>`); break; }
+    case "effort": reportDraft.effort = t.dataset.v; renderQuests(); break;
+    case "pain": { const v = t.dataset.v;
+      if (v==="none") reportDraft.pains = []; else reportDraft.pains = reportDraft.pains.includes(v) ? reportDraft.pains.filter(p=>p!==v) : reportDraft.pains.concat(v);
+      const note = $("#reportNote") && $("#reportNote").value; renderQuests(); if (note) $("#reportNote").value = note; break; }
+    case "report": if (reportDraft.effort){ submitReport(reportDraft.effort, reportDraft.pains, ($("#reportNote")||{}).value); reportDraft = {effort:null, pains:[]}; } break;
+    case "painnow":
+      notify("PAIN STOP RULE", `Stop the movement now. Where is the pain?<input id="painNote" style="margin-top:12px" placeholder="optional note (which exercise, how it felt)">`,
+        ["shoulder","knee","back"].map(a=>({label:a, cls:"danger", fn:()=>{ const n = ($("#painNote")||{}).value; setTimeout(()=>reportPainNow(a, n), 0); }})).concat([{label:"Cancel"}]));
+      break;
+    case "gate": { const g = DUNGEONS.find(x=>x.id===t.dataset.id);
+      notify("GATE ENTERED", `<div style="font-size:18px;font-weight:800" class="hl">${esc(g.name)}</div><div class="mute">${g.rank}-RANK GATE</div>
+        <p><b>Objective:</b> ${esc(g.task)}</p><div class="safety" style="text-align:left">⚠ ${esc(g.safety)} Retreating is always allowed, and the gate stays open.</div>`,
+        [{label:"Cleared!", cls:"primary", fn:()=>{ setTimeout(()=>clearDungeon(g.id),0); }}, {label:"Retreat"}]); break; }
+    case "chart": chartMetric = t.dataset.k; renderLog(); break;
+    case "savelog": saveLog(); break;
+    case "dellog": { const k = t.dataset.k;
+      notify("DELETE ENTRY", `Delete the metrics entry for <span class="hl">${k}</span>?`, [{label:"Delete", cls:"danger", fn:()=>{
+        delete state.metrics[k];
+        if (k===todayKey()){ const q = today().quests.find(x=>x.id==="steps"); if (q){ q.progress = 0; q.done = false; } }
+        save(); render(); }}, {label:"Cancel"}]); break; }
+    case "lib": libFilter = t.dataset.c; renderLibrary(); break;
+    case "saveset": { const n = $("#set_name").value.trim(); if (n) state.name = n; state.title = $("#set_title").value; save(); render(); toast("Saved"); break; }
+    case "export": download(`the-system-backup-${todayKey()}.json`, JSON.stringify(state, null, 2)); toast("Backup exported"); break;
+    case "copyjson": {
+      const txt = JSON.stringify(state);
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>toast("JSON copied"), ()=>{ $("#importText").value = txt; toast("Copy from the box below"); });
+      else { $("#importText").value = txt; toast("Copy from the box below"); }
+      break; }
+    case "importfile": $("#importFile").click(); break;
+    case "importpaste": importData($("#importText").value); break;
+    case "reset":
+      notify("RESET ALL DATA", `This erases every level, log, and achievement on this device.<br><b>Export a backup first.</b>`, [
+        {label:"Erase everything", cls:"danger", fn:()=>{ localStorage.removeItem(STORE_KEY); location.reload(); }}, {label:"Cancel"}]); break;
+  }
+});
+document.addEventListener("change", e=>{
+  const t = e.target;
+  if (t.matches("[data-steps]")) setProgress("steps", Math.max(0, parseInt(t.value||"0",10) || 0));
+  else if (t.id==="lf_date") fillLogForm(t.value);
+  else if (t.id==="importFile" && t.files[0]){ const r = new FileReader(); r.onload = () => importData(r.result); r.readAsText(t.files[0]); t.value = ""; }
+});
+document.addEventListener("keydown", e=>{
+  if (e.key==="Enter" && e.target.matches("[data-steps]")) e.target.blur();
+  if (e.key==="Escape" && noteOpen && $("#mBtns").children.length===1) nextNote();
+});
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+function announceDay(){
+  const d = today();
+  if (state.lastAnnounced === d.date) return;
+  state.lastAnnounced = d.date;
+  notify("QUEST ARRIVED", `<span class="hl">[Daily Quest: Preparations to Become Strong]</span><br>has arrived.<br><br><b>GOAL</b>
+    <ul>${d.quests.map(q=>`<li>${esc(q.title)}${q.optional?" <span class='mute'>(optional)</span>":""}${q.penalty?" <span style='color:var(--bad)'>(penalty)</span>":""}</li>`).join("")}</ul>
+    <span class="sub">CAUTION: Leaving the Daily Quest uncleared will summon a gentle Penalty Zone tomorrow.</span>`,
+    [{label:"Accept", cls:"primary", fn:()=>{ curTab = "quests"; render(); }}, {label:"Later"}]);
+  save();
+}
+function boot(){
+  load();
+  if (!state.introDone){
+    notify("NOTIFICATION", `You have acquired the qualifications<br>to be a <span class="hl">Player</span>.<br><br>Will you accept?`,
+      [{label:"Accept", cls:"primary", fn:()=>{ state.introDone = true; save(); }}]);
+    notify("SYSTEM RULES", `The System is a motivation tool, not a doctor.<br><br>
+      <ul><li><b>Clear this plan with your doctor</b>, especially with diabetes meds and your repaired shoulder.</li>
+      <li><b>Pain Stop Rule:</b> sharp pain or <b>any</b> right-shoulder pain = stop and log it.</li>
+      <li>Every quest uses bodyweight, a chair, a wall, or a counter. Nothing overhead, no jumping, no sit-ups.</li></ul>`, [{label:"Understood", cls:"primary"}]);
+  }
+  ensureDay();
+  announceDay();
+  checkWeekly(); checkAchievements(); save();
+  render();
+}
+setInterval(()=>{ if (state && !state.days[todayKey()]){ ensureDay(); announceDay(); render(); } }, 60000);
+document.addEventListener("visibilitychange", ()=>{ if (!document.hidden && state && !state.days[todayKey()]){ ensureDay(); announceDay(); render(); } });
+boot();
+</script>
+<script>
+if (location.protocol === "https:" && "serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" });
+  });
+}
+</script>
+</body>
+</html>

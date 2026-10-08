@@ -2,7 +2,11 @@
 
 An offline fitness quest, drawn like a game system window. It is one page. Nothing is sent to a server.
 
-Live app: https://sonofgiants.github.io/the-system/
+Live app (after Pages is on): https://sonofgiants.github.io/the-system/
+
+## Publishing
+
+GitHub Pages should serve the `main` branch, folder **/** (root). On the repo: **Settings → Pages → Deploy from a branch → main → / (root) → Save.** The first build takes about a minute.
 
 ## Add it to an iPhone Home Screen
 

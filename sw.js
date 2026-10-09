@@ -1,5 +1,5 @@
 /* The System — offline shell. Bump CACHE_VERSION when icons or the shell change. */
-const CACHE_VERSION = "the-system-v1";
+const CACHE_VERSION = "the-system-v2";
 
 const PRECACHE = [
   "./",

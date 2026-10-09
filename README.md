@@ -23,6 +23,8 @@ Levels, quests, and logs are stored in this device’s local storage (`theSystem
 
 A Home Screen icon keeps its own copy of that data, separate from a normal Safari tab. Clearing website data, or deleting the icon, removes it.
 
+Apple Health can be copied in from an iOS Shortcut. The shortcut puts a `SYSTEM-HEALTH:` line on the clipboard; open this Home Screen icon and tap **Sync Apple Health**. Setup steps are in [SHORTCUT.md](SHORTCUT.md) and under **System → Apple Health → How to set up**. A shortcut that opens a URL lands in Safari, which does not share this icon's saved data.
+
 Backups are on the **System** tab, under **Backup & Share**:
 
 - **Export JSON** downloads a backup file.

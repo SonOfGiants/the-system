@@ -241,6 +241,19 @@ table.log th:first-child,table.log td:first-child{text-align:left}
 @keyframes qcFade{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
 @keyframes qcZoom{0%{transform:scale(1.6);filter:blur(8px)}15%{transform:scale(1);filter:blur(0)}100%{transform:scale(1.04)}}
 footer.disc{font-size:11px;color:var(--mute);text-align:center;margin-top:20px;line-height:1.5}
+.health-sync{margin-top:12px}
+.btn.health{width:100%;letter-spacing:.14em}
+.health-hint{margin:8px 0 0;text-align:center;font-size:12px;color:var(--warn);letter-spacing:.04em}
+details.health-setup{margin-top:12px;border:1px solid var(--line2);border-radius:4px;padding:8px 10px;background:rgba(4,12,30,.45)}
+details.health-setup summary{cursor:pointer;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--glow2);font-weight:700}
+.health-doc{font-size:13px;line-height:1.5;color:var(--text)}
+.health-doc h3{margin:14px 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--glow2)}
+.health-doc h4{margin:12px 0 4px;font-size:13px;color:var(--text)}
+.health-doc p{margin:6px 0}
+.health-doc ol{margin:6px 0 10px;padding-left:1.25em}
+.health-doc li{margin:5px 0}
+.health-doc code,.health-doc pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--glow2)}
+.health-doc pre{white-space:pre-wrap;background:rgba(4,12,30,.65);border:1px solid var(--line2);padding:8px;border-radius:4px;color:var(--text)}
 
 /* ---------- responsive ---------- */
 @media (max-width:720px){
@@ -295,6 +308,107 @@ footer.disc{font-size:11px;color:var(--mute);text-align:center;margin-top:20px;l
 </div>
 <div class="toast" id="toast"></div>
 <div class="qc-overlay" id="qc"><div class="t" id="qcText">QUEST COMPLETE</div></div>
+<script type="text/plain" id="healthSetupSrc">
+# Apple Health → The System
+
+The Home Screen app keeps its own saved data, separate from Safari. A shortcut that uses **Open URLs** opens Safari, not the Home Screen app, so the numbers would land in the wrong place.
+
+This shortcut copies one line to the clipboard instead. You then open **The System** from the Home Screen icon and tap **Sync Apple Health**.
+
+The line looks like this:
+
+```
+SYSTEM-HEALTH:{"v":1,"date":"2026-10-09","steps":6234,"weight":329.4,"sleep":6.8,"glucose":142,"glucoseType":"fasting","waist":null,"activeMin":22}
+```
+
+Commas and units are fine (`6,234`, `329.4 lb`, `6,8 h`). Use `null` when you don't have a value. No comments and no curly quotes.
+
+Action names below match current iOS. A few labels differ on older versions; those spots say so.
+
+## 1. Create the shortcut
+
+1. Open the **Shortcuts** app.
+2. On the **Shortcuts** tab, tap **+** in the top corner.
+3. Tap the title at the top and name it **Sync Health to The System**.
+4. To add any action below, use the search field at the bottom. It is labeled **Search Actions** or **Add Action**, depending on your iOS version.
+
+### Date
+
+5. Add **Current Date**.
+6. Add **Format Date**. It should already be attached to Current Date. Set Date Format to **Custom**. In the format box (sometimes labeled **Format String**) type `yyyy-MM-dd`. Do not choose ISO 8601; that includes the time.
+
+### Steps (today's total)
+
+7. Add **Find Health Samples**. Set Type to **Steps**. Tap **Add Filter**, choose **Start Date**, then **is**, then **today**. Sort by can stay **Start Date**. Leave Limit off so every sample today is included.
+8. The action title often changes to **Find All Health Samples where Type is Steps and Start Date is today**. That is the same action, not a second one.
+9. Add **Calculate Statistics**. Set the input to those step samples (Shortcuts usually wires this for you). Set the statistic to **Sum**. If you do not see **Calculate Statistics**, use the older path: add **Get Details of Health Samples** (some versions say **Get Details of Health Sample**), then add **Calculate Statistics** and choose **Sum**.
+
+### Weight (latest sample)
+
+10. Add another **Find Health Samples**. Set Type to **Weight**. If Weight is not in the list, choose **Body Mass** — the label varies by iOS version. Set Sort by to **Start Date**, Order to **Latest First**, turn **Limit** on, and set it to **1**.
+11. Add **Get Details of Health Samples** (or **Get Details of Health Sample**). Set Detail to **Value**, and set the input to that one weight sample. If that action is missing, you can tap the weight variable later inside the Text action and choose **Value** there. Same result.
+12. The System expects **pounds**. If your Health app shows kilograms, add **Calculate** and multiply the weight by `2.205`. A kilogram number left as-is is under 80 and will be ignored.
+
+### Sleep (last night, in hours)
+
+13. Add **Find Health Samples**. Set Type to **Sleep Analysis**. Set Start Date to **is in the last** **1 day**. If your iOS version does not offer "in the last", choose **is yesterday**, or **is between** yesterday at 6:00 PM and today at 12:00 PM. Running this in the morning is the best match for last night. A 9:00 PM run usually still sees last night; a long nap today can be included.
+14. If you see a **Category** filter, count time asleep, not time in bed. On older iOS set Category **is** **Asleep**. On iOS 16 and later, sleep is often split into stages. The names vary: **Asleep**, **Asleep Core**, **Asleep Deep**, **Asleep REM**, and **Asleep Unspecified**. Include the asleep stages and leave out **In Bed** and **Awake**. If the only choice is a single **Asleep** and the total looks too small (under a couple of hours after a full night), the stages are being excluded — widen the filter.
+15. Add **Calculate Statistics** on those samples. Statistic: **Sum**. If a second menu appears, choose **Duration**.
+16. The payload needs a plain number of **hours**, such as `6.8`. If the sum is already about 5 to 10, use it as-is. If it is a large number (seconds, often 15,000 to 40,000), add **Calculate** and divide by `3600`. If it reads like "6 hours, 48 minutes", tap that variable and pick a numeric form if one is offered; otherwise divide the seconds value by 3600. A sentence in the payload is not reliable.
+
+### Blood glucose (latest today)
+
+17. Add **Find Health Samples**. Set Type to **Blood Glucose**, Start Date **is today**, Sort by **Start Date**, Order **Latest First**, Limit **1**. If Blood Glucose is not in the type list, open the Health app, tap **Browse**, search **Blood Glucose**, and save one reading (a manual one is enough). Return to Shortcuts and the type should appear.
+18. Add **Get Details of Health Samples** and set Detail to **Value**. US Health data is usually mg/dL, which is what The System expects. If the number is in mmol/L (typically under 30), multiply by `18` with **Calculate**, or include the unit text `mmol` in the payload and The System will convert it.
+
+### Exercise minutes (optional)
+
+19. Add **Find Health Samples**. Set Type to **Exercise Time**. On some iOS versions the type is labeled **Apple Exercise Time**. Start Date **is today**.
+20. Add **Calculate Statistics** and choose **Sum**. That number is `activeMin`. If you skip exercise minutes, use `null` for `activeMin` in the text below.
+
+Waist is not read automatically. Leave `"waist":null` unless you type a number of inches yourself.
+
+### Copy the payload
+
+21. Add **Text**. Focus the text box. Above the keyboard, tap the colored variable tokens to insert them — don't type the numbers by hand. The line should follow this shape, with your variables in place of the names:
+
+```
+SYSTEM-HEALTH:{"v":1,"date":"FORMATTED_DATE","steps":STEPS_SUM,"weight":WEIGHT_VALUE,"sleep":SLEEP_HOURS,"glucose":GLUCOSE_VALUE,"glucoseType":"fasting","waist":null,"activeMin":EXERCISE_SUM}
+```
+
+Keep the quotes around the date and around `fasting`. Do not put quotes around the numbers. Keep a comma between fields, and no comma after the last field. If this glucose reading is not fasting, change `fasting` to `before meal`, `2h after meal`, or `random`.
+
+22. An empty variable turns the line into broken JSON, like `"weight":,`. For weight, sleep, glucose, and exercise minutes, add an **If** before the Text action: condition **has any value**. Under **Otherwise**, add a **Text** action that contains only `null`, and insert that Text token into the payload instead of the empty sample. **End If**. Steps can stay as the sum (zero is a real total). This If / Otherwise layout is the usual one; older iOS shows the same idea as "If / Otherwise".
+
+23. Add **Copy to Clipboard**. Set the input to the Text from the payload step, not to a single number.
+24. Add **Show Notification**. Put this sentence in the title or the body (some iOS versions have one field, some have Title and Body): `Health synced — open The System and tap Sync Apple Health`
+25. Tap **Done**. Do not add **Open URLs** or **Open App**. Those open Safari.
+
+## 2. Allow Health access (one time)
+
+26. In the Shortcuts app, open **Sync Health to The System** and run it with the play button. Do this by hand before you rely on the evening automation. The permission question cannot appear from an automation.
+27. iOS asks to read Health data the first time. Allow **Steps**, **Weight** (or Body Mass), **Sleep**, **Blood Glucose**, and **Exercise Time** if you included it. The button is **Allow** or **Turn On All**, depending on the iOS version.
+28. If you dismissed one: open **Settings → Health → Data Access & Devices → Shortcuts** and turn the types on. On some iOS versions the path is **Settings → Privacy & Security → Health → Shortcuts**.
+29. Open **The System** from the **Home Screen icon**, not from a Safari tab. Tap **Sync Apple Health**. If iOS asks to paste, tap **Allow Paste** or **Paste**. A system window lists what was imported.
+30. If the paste prompt fails or the clipboard is empty, the app shows a box. Paste the `SYSTEM-HEALTH:` line there and tap **Import Pasted Health**.
+
+## 3. Run it every evening
+
+31. In Shortcuts, open the **Automation** tab.
+32. Tap **+**, then **Create Personal Automation**. On newer iOS the first screen may already be the trigger list under **New Automation**.
+33. Choose **Time of Day**. Set **9:00 PM** and repeat **Daily**. Continue with **Next** or **Done**, whichever that screen shows.
+34. When it asks for the action, add **Run Shortcut** and choose **Sync Health to The System**. If you instead get a list of existing shortcuts, tap that shortcut. The screen varies by iOS version.
+35. Turn on **Run Immediately**. On iOS 16 and earlier the switch is labeled **Ask Before Running** — turn that **off**. You want the shortcut to run without an extra tap. The label varies by version; the goal is the same.
+36. Tap **Done**. The first few nights, iOS may still flash a short automation notice. That is normal.
+
+## 4. Each night after that
+
+The automation copies today's line at 9:00 PM. Next time you open The System, tap **Sync Apple Health**. The app also shows **Health data ready? Tap Sync** when it has not synced yet today. It will not read the clipboard by itself unless iOS has already allowed clipboard access, so the tap is required.
+
+A Home Screen icon and a Safari tab do not share data. Always sync from the icon you actually use.
+
+Desktop or a normal Safari tab can import the same line with a link: `https://sonofgiants.github.io/the-system/#health=` plus the payload, URL-encoded. That link opens Safari, not the Home Screen app.
+</script>
 <script>
 "use strict";
 /* =====================================================================
@@ -504,7 +618,7 @@ function defaultState(){
     lastEffort:null, rightCount:0,
     days:{}, metrics:{}, achievements:{}, weekly:{}, dungeons:{}, painLog:[],
     counters:{circuits:0, mobility:0, mealWalks:0, penalties:0, kegels:0, daysCleared:0, weeklyClears:0},
-    lastAnnounced:null
+    lastAnnounced:null, lastHealthSync:null, healthXpDate:null
   };
 }
 function mergeDefaults(s){
@@ -574,7 +688,7 @@ function genQuests(dk, penalty){
     items:[{ex:"walk", amt:"+5 min"}], note:"Yesterday's quest went uncleared. No punishment, just one extra easy 5-minute walk to get the engine turning again."});
   const sg = stepGoal();
   q.push({id:"steps", cat:"Vitality", title:"Daily Steps", kind:"steps", target:sg, progress:0, xp:XP.steps,
-    items:[{ex:"walk", amt:sg.toLocaleString()+" steps"}], note:"Enter today's total from your phone or watch. Walks of any kind count."});
+    items:[{ex:"walk", amt:sg.toLocaleString()+" steps"}], note:"Enter today's total from your phone or watch, or tap Sync Apple Health. Walks of any kind count."});
   const mw = mealWalkTarget();
   q.push({id:"mealwalk", cat:"Blood Sugar", title:"Post-Meal Walks", kind:"counter", target:mw, progress:0, xp:XP.mealwalk, unit:"walks",
     items:[{ex:"post_meal_walk", amt:(flagged("knee")?"5–10":"10")+" min × "+mw}], note:"Walk within ~30 min after a meal. Tap + after each one."});
@@ -821,6 +935,7 @@ function afterChange(){ checkWeekly(); checkAchievements(); save(); render(); }
    ===================================================================== */
 let curTab = "status", libFilter = "All", chartMetric = "weight";
 let reportDraft = {effort:null, pains:[]};
+let healthHint = false, healthPasteOpen = false, healthBusy = false;
 
 function exLink(id){ return `<a class="exlink" data-act="ex" data-id="${id}">${esc(EX[id].name)}</a>`; }
 function latestMetric(f){ const ks = Object.keys(state.metrics).sort().reverse(); for (const k of ks) if (state.metrics[k][f] != null) return {date:k, v:state.metrics[k][f]}; return null; }
@@ -877,6 +992,8 @@ function renderStatus(){
         </div>
         <div class="row" style="margin-top:12px"><button class="btn primary" data-act="tab" data-tab="quests">Open Daily Quest</button>
           <button class="btn" data-act="tab" data-tab="log">Log Metrics</button></div>
+        <div class="health-sync"><button class="btn primary health" data-act="healthsync">Sync Apple Health</button>
+          <p class="health-hint" ${healthHint?"":"hidden"}>Health data ready? Tap Sync</p></div>
       </div>
       <div class="panel">
         <div class="ptitle"><span>Player Notes</span></div>
@@ -1026,10 +1143,15 @@ function renderLog(){
   $("#tab-log").innerHTML = `
   <div class="panel">
     <div class="ptitle"><span>Log Metrics</span></div>
+    <div class="health-sync" style="margin-top:0"><button class="btn primary health" data-act="healthsync">Sync Apple Health</button>
+      <p class="health-hint" ${healthHint?"":"hidden"}>Health data ready? Tap Sync</p></div>
+    ${healthPasteOpen ? `<div id="healthPasteBox" style="margin-top:10px"><div class="sub">Paste the SYSTEM-HEALTH: line from the shortcut, then import it.</div>
+      <textarea id="healthPasteLog" rows="3" style="margin-top:8px" placeholder="SYSTEM-HEALTH:{...}"></textarea>
+      <div class="row" style="margin-top:8px"><span class="spacer"></span><button class="btn primary" data-act="healthpaste" data-src="healthPasteLog">Import Pasted Health</button></div></div>` : ""}
     <div class="form" id="logForm">
       <div><label>Date</label><input type="date" id="lf_date" value="${todayKey()}"></div>
       ${LOG_FIELDS.map(([k,l,st])=>`<div><label>${l}</label><input type="number" inputmode="decimal" step="${st}" id="lf_${k}" value="${cur[k]!=null?cur[k]:""}"></div>`).join("")}
-      <div><label>Glucose type</label><select id="lf_gtype">${["fasting","before meal","2h after meal","random"].map(t=>`<option ${cur.gtype===t?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div><label>Glucose type</label><select id="lf_gtype">${["fasting","before meal","2h after meal","random"].concat(cur.gtype && !["fasting","before meal","2h after meal","random"].includes(cur.gtype)?[cur.gtype]:[]).map(t=>`<option ${cur.gtype===t?"selected":""}>${t}</option>`).join("")}</select></div>
       <div style="grid-column:1/-1"><label>Note</label><input id="lf_note" value="${esc(cur.note||"")}" placeholder="optional"></div>
     </div>
     <div class="row" style="margin-top:10px"><span class="mute">Blank fields are left empty. Choosing a date loads that day's entry for editing.</span><span class="spacer"></span><button class="btn primary" data-act="savelog">Save Entry</button></div>
@@ -1041,9 +1163,9 @@ function renderLog(){
   </div>
   <div class="panel">
     <div class="ptitle"><span>Records</span></div>
-    ${keys.length ? `<div class="tablewrap"><table class="log"><tr><th>Date</th><th>Wt</th><th>Steps</th><th>Gluc</th><th>Sleep</th><th>Energy</th><th>Lib</th><th>Waist</th><th></th></tr>
+    ${keys.length ? `<div class="tablewrap"><table class="log"><tr><th>Date</th><th>Wt</th><th>Steps</th><th>Gluc</th><th>Sleep</th><th>Energy</th><th>Lib</th><th>Waist</th><th>Active</th><th></th></tr>
       ${keys.slice(0,45).map(k=>{const m=state.metrics[k]; const c=v=>v!=null?v:"–"; return `<tr><td>${k}</td><td>${c(m.weight)}</td><td>${m.steps!=null?m.steps.toLocaleString():"–"}</td>
-        <td>${c(m.glucose)}${m.glucose!=null&&m.gtype?`<span class="mute"> ${m.gtype==="fasting"?"F":m.gtype==="2h after meal"?"PM":""}</span>`:""}</td><td>${c(m.sleep)}</td><td>${c(m.energy)}</td><td>${c(m.libido)}</td><td>${c(m.waist)}</td>
+        <td>${c(m.glucose)}${m.glucose!=null&&m.gtype?`<span class="mute"> ${m.gtype==="fasting"?"F":m.gtype==="2h after meal"?"PM":""}</span>`:""}</td><td>${c(m.sleep)}</td><td>${c(m.energy)}</td><td>${c(m.libido)}</td><td>${c(m.waist)}</td><td>${c(m.activeMin)}</td>
         <td><button class="btn sm danger" data-act="dellog" data-k="${k}" title="Delete">✕</button></td></tr>`;}).join("")}</table></div>` : `<div class="mute">No entries yet. Log your starting weight, waist, and a fasting glucose to set your baseline.</div>`}
   </div>
   <div class="panel">
@@ -1088,6 +1210,17 @@ function renderSettings(){
       <div><label>Equipped title</label><select id="set_title"><option value="">None</option>${titles.map(t=>`<option ${state.title===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div>
     </div>
     <div class="row" style="margin-top:10px"><span class="spacer"></span><button class="btn primary" data-act="saveset">Save</button></div>
+  </div>
+  <div class="panel">
+    <div class="ptitle"><span>Apple Health</span></div>
+    <div class="sub">Last sync: <b style="color:var(--text)">${esc(formatHealthSync(state.lastHealthSync))}</b>${state.healthXpDate===todayKey()?' · <span class="mute">today\'s +5 XP sync bonus already claimed</span>':""}</div>
+    <div class="health-sync"><button class="btn primary health" data-act="healthsync">Sync Apple Health</button>
+      <p class="health-hint" ${healthHint?"":"hidden"}>Health data ready? Tap Sync</p></div>
+    <div class="sub" style="margin-top:8px">An iOS Shortcut copies a <b style="color:var(--text)">SYSTEM-HEALTH:</b> line to the clipboard. Open this Home Screen app and tap the button. Shortcuts' Open URL goes to Safari, which does not share this app's saved data.</div>
+    <details class="health-setup">
+      <summary>How to set up</summary>
+      <div class="health-doc">${healthSetupHTML()}</div>
+    </details>
   </div>
   <div class="panel">
     <div class="ptitle"><span>Backup &amp; Share</span></div>
@@ -1135,6 +1268,366 @@ function download(name, text){
   a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
   a.download = name; document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+/* =====================================================================
+   APPLE HEALTH  (Shortcut copies "SYSTEM-HEALTH:" + JSON; this merges it)
+   ===================================================================== */
+function formatHealthSync(iso){
+  if (!iso) return "Never";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "Never";
+  return d.toLocaleString(undefined, {weekday:"short", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+}
+function healthSyncedToday(){
+  if (!state || !state.lastHealthSync) return false;
+  const d = new Date(state.lastHealthSync);
+  return !isNaN(d.getTime()) && dkey(d) === todayKey();
+}
+function paintHealthHint(){
+  $$(".health-hint").forEach(el => { el.hidden = !healthHint; });
+}
+function healthSetupHTML(){
+  const raw = ($("#healthSetupSrc") && $("#healthSetupSrc").textContent || "").trim();
+  return renderSimpleMd(raw);
+}
+function renderSimpleMd(md){
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const out = [];
+  let inCode = false, code = [];
+  const endCode = () => { if (inCode){ out.push("<pre>"+esc(code.join("\n"))+"</pre>"); code = []; inCode = false; } };
+  for (const line of md.split("\n")){
+    if (line.trim().startsWith("```")){
+      if (inCode) endCode(); else { inCode = true; code = []; }
+      continue;
+    }
+    if (inCode){ code.push(line); continue; }
+    const item = line.match(/^(\d+)\.\s+(.*)$/);
+    if (item){ out.push("<p><b>"+item[1]+".</b> "+inline(item[2])+"</p>"); continue; }
+    if (!line.trim()) continue;
+    if (line.startsWith("#### ")) out.push("<h4>"+inline(line.slice(5))+"</h4>");
+    else if (line.startsWith("### ")) out.push("<h4>"+inline(line.slice(4))+"</h4>");
+    else if (line.startsWith("## ")) out.push("<h3>"+inline(line.slice(3))+"</h3>");
+    else if (line.startsWith("# ")) out.push("<h3>"+inline(line.slice(2))+"</h3>");
+    else out.push("<p>"+inline(line)+"</p>");
+  }
+  endCode();
+  return out.join("");
+}
+function parseHealthNumber(raw){
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s || /^null$/i.test(s) || s === "—" || s === "-") return null;
+  s = s.replace(/\s+/g, "");
+  const m = s.match(/-?[\d.,]+/);
+  if (!m) return null;
+  s = m[0];
+  const comma = s.indexOf(",") >= 0, dot = s.indexOf(".") >= 0;
+  if (comma && dot){
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (comma){
+    if (/^-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, "");
+    else if (/^-?\d+,\d{1,2}$/.test(s)) s = s.replace(",", ".");
+    else s = s.replace(/,/g, "");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function parseMeasured(raw, kind){
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (raw == null) return null;
+  const original = String(raw);
+  if (!original.trim() || /^null$/i.test(original.trim())) return null;
+  let n = parseHealthNumber(original);
+  if (n == null) return null;
+  if (kind === "weight" && /kg/i.test(original)) n *= 2.2046226218;
+  if (kind === "glucose" && /mmol/i.test(original)) n *= 18.0182;
+  if (kind === "sleep" && /min/i.test(original) && !/hour|hrs?\b/i.test(original)) n /= 60;
+  if (kind === "waist" && /cm/i.test(original)) n /= 2.54;
+  return n;
+}
+function normHealthDate(v){
+  if (v == null || v === "") return null;
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m){
+    const y = +m[1], mo = +m[2], d = +m[3];
+    const dt = new Date(y, mo-1, d);
+    if (dt.getFullYear()===y && dt.getMonth()===mo-1 && dt.getDate()===d) return m[1]+"-"+m[2]+"-"+m[3];
+    return null;
+  }
+  m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/);
+  if (m){
+    const mo = +m[1], d = +m[2], y = +m[3];
+    const dt = new Date(y, mo-1, d);
+    if (dt.getFullYear()===y && dt.getMonth()===mo-1 && dt.getDate()===d)
+      return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+  }
+  return null;
+}
+function normGType(v){
+  if (v == null || v === "") return null;
+  const s = String(v).trim().toLowerCase();
+  if (!s || s === "null") return null;
+  if (s === "fasting" || s === "f") return "fasting";
+  if (s.includes("before") || s === "premeal" || s === "pre-meal") return "before meal";
+  if (s.includes("after") || s.includes("post")) return "2h after meal";
+  if (s === "random" || s === "r") return "random";
+  return String(v).trim().slice(0, 40);
+}
+function extractHealthJson(text){
+  let s = String(text || "").replace(/^\uFEFF/, "").replace(/[\u201C\u201D]/g, '"').trim();
+  const tag = s.match(/system-health\s*:/i);
+  const prefixed = !!tag;
+  if (tag) s = s.slice(tag.index + tag[0].length).trim();
+  const objAt = s.indexOf("{"), arrAt = s.indexOf("[");
+  let start = -1;
+  if (objAt < 0) start = arrAt;
+  else if (arrAt < 0) start = objAt;
+  else start = Math.min(objAt, arrAt);
+  if (start < 0) return {prefixed, json:null};
+  s = s.slice(start);
+  let depth = 0, inStr = false, escCh = false, end = -1;
+  for (let i = 0; i < s.length; i++){
+    const c = s[i];
+    if (inStr){
+      if (escCh) escCh = false;
+      else if (c === "\\") escCh = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"'){ inStr = true; continue; }
+    if (c === "{" || c === "[") depth++;
+    else if (c === "}" || c === "]"){
+      depth--;
+      if (depth === 0){ end = i; break; }
+    }
+  }
+  let body = end >= 0 ? s.slice(0, end+1) : s;
+  body = body.replace(/:\s*,/g, ":null,").replace(/:\s*([}\]])/g, ":null$1");
+  return {prefixed, json:body};
+}
+function firstHealthField(obj, keys){
+  for (const k of keys) if (obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] != null && obj[k] !== "") return obj[k];
+  return undefined;
+}
+function acceptHealthField(kind, raw){
+  if (raw === undefined) return {skip:true};
+  if (typeof raw === "string" && /^null$/i.test(raw.trim())) return {skip:true};
+  const n = parseMeasured(raw, kind);
+  if (n == null) return {bad:true, note:kind+" "+JSON.stringify(raw)+" (not a number)"};
+  const round1 = v => Math.round(v*10)/10;
+  const round2 = v => Math.round(v*100)/100;
+  if (kind === "steps"){
+    if (n < 0 || n > 100000) return {bad:true, note:"steps "+n+" ("+(n>100000?"over 100,000":"negative")+")"};
+    return {value:Math.round(n)};
+  }
+  if (kind === "weight"){
+    if (n < 80 || n > 700) return {bad:true, note:"weight "+round1(n)+" lb (outside 80–700 lb)"};
+    return {value:round1(n)};
+  }
+  if (kind === "sleep"){
+    if (n <= 0 || n > 24) return {bad:true, note:"sleep "+round2(n)+" h ("+(n>24?"over 24 hours":"not a usable duration")+")"};
+    return {value:round2(n)};
+  }
+  if (kind === "glucose"){
+    if (n < 20 || n > 600) return {bad:true, note:"glucose "+Math.round(n)+" (outside 20–600 mg/dL)"};
+    return {value:Math.round(n)};
+  }
+  if (kind === "waist"){
+    if (n < 20 || n > 80) return {bad:true, note:"waist "+round1(n)+" (doesn't look like inches)"};
+    return {value:round1(n)};
+  }
+  if (kind === "activeMin"){
+    if (n < 0 || n > 1440) return {bad:true, note:"activeMin "+Math.round(n)+" (outside 0–1,440 minutes)"};
+    return {value:Math.round(n)};
+  }
+  return {skip:true};
+}
+function healthDayFrom(obj, fallbackDate){
+  const ignored = [];
+  let date = normHealthDate(firstHealthField(obj, ["date","day","on"]));
+  let dateNote = null;
+  if (!date && fallbackDate){ date = fallbackDate; dateNote = "No date in the payload; used "+fallbackDate+"."; }
+  if (!date) return {date:null, accepted:{}, gtype:null, ignored:["A day was skipped because it had no usable date."]};
+  const accepted = {};
+  const fields = {
+    steps:["steps","step","stepCount"],
+    weight:["weight","bodyMass","wt"],
+    sleep:["sleep","sleepHours","asleep"],
+    glucose:["glucose","bloodGlucose","bg"],
+    waist:["waist","waistIn"],
+    activeMin:["activeMin","activeMinutes","exerciseMin","exerciseTime"]
+  };
+  for (const kind of Object.keys(fields)){
+    const raw = firstHealthField(obj, fields[kind]);
+    if (raw === undefined) continue;
+    const got = acceptHealthField(kind, raw);
+    if (got.skip) continue;
+    if (got.bad) ignored.push(got.note);
+    else accepted[kind] = got.value;
+  }
+  const gtype = accepted.glucose != null ? normGType(firstHealthField(obj, ["glucoseType","gtype","glucose_type"])) : null;
+  if (dateNote) ignored.push(dateNote);
+  return {date, accepted, gtype, ignored};
+}
+function parseHealthPayload(text){
+  const extracted = extractHealthJson(text);
+  if (!extracted.json) return {error:"No Health payload found. Copy the SYSTEM-HEALTH: line from the shortcut.", days:[]};
+  let data;
+  try { data = JSON.parse(extracted.json); }
+  catch(e){ return {error:"That text isn't valid Health JSON.", days:[]}; }
+  if (!extracted.prefixed && data && typeof data === "object" && !Array.isArray(data) && typeof data.level === "number" && data.metrics)
+    return {error:"That looks like a System backup, not an Apple Health payload.", days:[]};
+  let records = [];
+  if (Array.isArray(data)) records = data;
+  else if (data && Array.isArray(data.days) && data.days.length) records = data.days;
+  else if (data && typeof data === "object") records = [data];
+  else return {error:"No Health payload found.", days:[]};
+  const days = [];
+  records.forEach(rec => {
+    if (!rec || typeof rec !== "object" || Array.isArray(rec)){
+      days.push({date:null, accepted:{}, gtype:null, ignored:["A day was skipped because it wasn't an object."]});
+      return;
+    }
+    days.push(healthDayFrom(rec, records.length === 1 ? todayKey() : null));
+  });
+  const usable = days.filter(d => d.date && (Object.keys(d.accepted).length || d.ignored.length));
+  if (!usable.length) return {error:"No Health payload found.", days:[]};
+  return {error:null, days};
+}
+function applyHealthImport(parsed){
+  if (!parsed || parsed.error){
+    notify("IMPORT FAILED", esc(parsed && parsed.error || "No Health payload found."));
+    return false;
+  }
+  const notes = [];
+  let imported = 0;
+  let todaySteps = null;
+  const sleepBefore = (weeklyMissions().find(m => m.id==="sleep4") || {}).cur || 0;
+  for (const day of parsed.days){
+    (day.ignored||[]).forEach(n => notes.push((day.date ? day.date+": " : "")+n));
+    if (!day.date || !Object.keys(day.accepted).length) continue;
+    const m = Object.assign({}, state.metrics[day.date] || {});
+    ["steps","weight","sleep","glucose","waist","activeMin"].forEach(k => { if (day.accepted[k] != null) m[k] = day.accepted[k]; });
+    if (day.accepted.glucose != null){
+      if (day.gtype) m.gtype = day.gtype; else if (!m.gtype) m.gtype = "random";
+    }
+    state.metrics[day.date] = m;
+    imported++;
+    if (day.date === todayKey() && day.accepted.steps != null) todaySteps = day.accepted.steps;
+  }
+  if (!imported){
+    notify("HEALTH DATA", `Nothing was stored.${notes.length ? "<ul>"+notes.map(n=>"<li>"+esc(n)+"</li>").join("")+"</ul>" : ""}`);
+    return false;
+  }
+  state.lastHealthSync = new Date().toISOString();
+  const award = state.healthXpDate !== todayKey();
+  if (award) state.healthXpDate = todayKey();
+  healthHint = false;
+  healthPasteOpen = false;
+  const stepsQuest = today() && today().quests.find(q => q.id==="steps");
+  const wasDone = !!(stepsQuest && stepsQuest.done);
+  if (todaySteps != null && stepsQuest) setProgress("steps", todaySteps);
+  else afterChange();
+  if (award) gainXP(5, "Health sync");
+  const nowQuest = today() && today().quests.find(q => q.id==="steps");
+  const sleepAfter = (weeklyMissions().find(m => m.id==="sleep4") || {}).cur || 0;
+  save();
+  render();
+  const lines = [];
+  lines.push(`<span class="hl">${imported} day${imported===1?"":"s"}</span> merged into the log. Existing days were updated, not duplicated.`);
+  parsed.days.forEach(day => {
+    if (!day.date || !Object.keys(day.accepted).length) return;
+    const a = day.accepted, bits = [];
+    if (a.steps != null) bits.push(`Steps <b>${a.steps.toLocaleString()}</b>`);
+    if (a.weight != null) bits.push(`Weight <b>${a.weight} lb</b>`);
+    if (a.sleep != null) bits.push(`Sleep <b>${a.sleep} h</b>${a.sleep>=7?" (counts toward the sleep mission)":""}`);
+    if (a.glucose != null) bits.push(`Glucose <b>${a.glucose}</b>${day.gtype?" ("+esc(day.gtype)+")":""}`);
+    if (a.waist != null) bits.push(`Waist <b>${a.waist} in</b>`);
+    if (a.activeMin != null) bits.push(`Active <b>${a.activeMin} min</b>`);
+    lines.push(`<b>${esc(day.date)}</b> — ${bits.join(" · ")}`);
+  });
+  if (todaySteps != null && nowQuest){
+    if (nowQuest.done && !wasDone) lines.push(`Daily Steps quest <span class="hl">cleared</span> (${todaySteps.toLocaleString()} / ${nowQuest.target.toLocaleString()}).`);
+    else lines.push(`Daily Steps quest updated to <span class="hl">${todaySteps.toLocaleString()}</span> / ${nowQuest.target.toLocaleString()}.`);
+  }
+  if (sleepAfter !== sleepBefore) lines.push(`Sleep mission: <span class="hl">${sleepAfter}</span> / 4 nights at 7+ hours this week.`);
+  lines.push(award ? `Sync reward: <span class="hl">+5 XP</span>` : `<span class="mute">Sync bonus already claimed today.</span>`);
+  if (notes.length) lines.push(`<span class="sub">Ignored</span><ul>${notes.map(n=>"<li>"+esc(n)+"</li>").join("")}</ul>`);
+  notify("HEALTH DATA RECEIVED", lines.join("<br>"));
+  return true;
+}
+function showHealthPaste(prefill){
+  healthPasteOpen = true;
+  curTab = "log";
+  render();
+  const seed = prefill || "";
+  const logBox = $("#healthPasteLog");
+  if (logBox) logBox.value = seed;
+  notify("PASTE HEALTH DATA", `<div class="sub" style="text-align:left">The clipboard didn't have a <b>SYSTEM-HEALTH:</b> payload. iOS only shares the clipboard after you tap, and it may ask you to allow Paste. Paste the shortcut line here.</div>
+    <textarea id="healthPaste" rows="4" style="margin-top:10px" placeholder="SYSTEM-HEALTH:{...}">${esc(seed)}</textarea>`, [
+    {label:"Import Pasted Health", cls:"primary", fn:()=>{
+      const v = ($("#healthPaste") && $("#healthPaste").value) || ($("#healthPasteLog") && $("#healthPasteLog").value) || "";
+      const parsed = parseHealthPayload(v);
+      if (!parsed || parsed.error){ toast(parsed && parsed.error || "No Health payload found."); return false; }
+      applyHealthImport(parsed);
+    }},
+    {label:"Cancel", fn:()=>{ healthPasteOpen = false; render(); }}
+  ]);
+  setTimeout(()=>{ const a = $("#healthPaste"); if (a) a.focus(); }, 40);
+}
+async function syncAppleHealth(){
+  if (healthBusy) return;
+  healthBusy = true;
+  let text = "", failed = false;
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.readText) throw new Error("no clipboard");
+    text = await navigator.clipboard.readText();
+  } catch(e){ failed = true; }
+  healthBusy = false;
+  const parsed = !failed && text ? parseHealthPayload(text) : null;
+  if (failed || !parsed || parsed.error){
+    showHealthPaste(!failed ? (text || "") : "");
+    return;
+  }
+  applyHealthImport(parsed);
+}
+async function checkHealthHint(){
+  if (!state || healthSyncedToday()){ healthHint = false; paintHealthHint(); return; }
+  let perm = "unknown";
+  try {
+    if (navigator.permissions && navigator.permissions.query)
+      perm = (await navigator.permissions.query({name:"clipboard-read"})).state;
+  } catch(e){ perm = "unknown"; }
+  if (perm === "granted"){
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = parseHealthPayload(text || "");
+      healthHint = !!(parsed && !parsed.error && parsed.days.some(d => d.date && Object.keys(d.accepted).length));
+    } catch(e){ healthHint = false; }
+  } else {
+    healthHint = true;
+  }
+  paintHealthHint();
+}
+function consumeHealthHash(){
+  const hash = location.hash || "";
+  if (!/^#health=/i.test(hash)) return;
+  let raw = hash.replace(/^#health=/i, "");
+  for (let i = 0; i < 2; i++){
+    if (!/%[0-9A-Fa-f]{2}/.test(raw)) break;
+    try { const next = decodeURIComponent(raw.replace(/\+/g, " ")); if (next === raw) break; raw = next; }
+    catch(e){ break; }
+  }
+  history.replaceState(null, "", location.pathname + location.search);
+  const parsed = parseHealthPayload(raw);
+  if (!parsed || parsed.error || !parsed.days.some(d => d.date && Object.keys(d.accepted).length)){
+    showHealthPaste(raw);
+    return;
+  }
+  applyHealthImport(parsed);
 }
 function importData(text){
   let obj;
@@ -1218,6 +1711,15 @@ document.addEventListener("click", e=>{
       break; }
     case "importfile": $("#importFile").click(); break;
     case "importpaste": importData($("#importText").value); break;
+    case "healthsync": syncAppleHealth(); break;
+    case "healthpaste": {
+      const src = t.dataset.src || "healthPasteLog";
+      const v = ($("#"+src) && $("#"+src).value) || "";
+      const parsed = parseHealthPayload(v);
+      if (!parsed || parsed.error){ toast(parsed && parsed.error || "No Health payload found."); break; }
+      applyHealthImport(parsed);
+      break;
+    }
     case "reset":
       notify("RESET ALL DATA", `This erases every level, log, and achievement on this device.<br><b>Export a backup first.</b>`, [
         {label:"Erase everything", cls:"danger", fn:()=>{ localStorage.removeItem(STORE_KEY); location.reload(); }}, {label:"Cancel"}]); break;
@@ -1261,9 +1763,16 @@ function boot(){
   announceDay();
   checkWeekly(); checkAchievements(); save();
   render();
+  consumeHealthHash();
+  checkHealthHint();
 }
 setInterval(()=>{ if (state && !state.days[todayKey()]){ ensureDay(); announceDay(); render(); } }, 60000);
-document.addEventListener("visibilitychange", ()=>{ if (!document.hidden && state && !state.days[todayKey()]){ ensureDay(); announceDay(); render(); } });
+document.addEventListener("visibilitychange", ()=>{
+  if (document.hidden || !state) return;
+  if (!state.days[todayKey()]){ ensureDay(); announceDay(); render(); }
+  checkHealthHint();
+});
+window.addEventListener("hashchange", ()=>{ if (state) consumeHealthHash(); });
 boot();
 </script>
 <script>

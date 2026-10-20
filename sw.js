@@ -1,5 +1,5 @@
 /* The System — offline shell. Bump CACHE_VERSION when icons or the shell change. */
-const CACHE_VERSION = "the-system-v2";
+const CACHE_VERSION = "the-system-v3";
 
 const PRECACHE = [
   "./",
@@ -24,7 +24,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))
+        keys.filter((key) => key.startsWith("the-system-") && key !== CACHE_VERSION).map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
   );
@@ -43,6 +43,10 @@ self.addEventListener("fetch", (event) => {
   let url;
   try { url = new URL(request.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;
+
+  // Loop Quest is a separate app with its own worker. Leave /loop/ alone
+  // so this shell cache cannot swallow that page.
+  if (url.pathname.includes("/loop/") || /\/loop\/?$/.test(url.pathname)) return;
 
   if (isAppShell(url, request)) {
     event.respondWith(networkFirstDocument(request));

@@ -124,6 +124,24 @@
     return n.toFixed(digits == null ? 2 : digits);
   }
 
+  // Headline distance. Never round an under-target loop up to the target,
+  // and never round an over-target loop down below the target.
+  function formatLoopDistance(meters, targetMeters) {
+    const digits = 2;
+    const factor = unit === "mi" ? MI : 1000;
+    const value = meters / factor;
+    const target = targetMeters / factor;
+    const step = Math.pow(10, -digits);
+    let shown = Number(value.toFixed(digits));
+    if (meters >= targetMeters) {
+      if (shown + 1e-9 < target) shown = Math.ceil((target - 1e-12) / step) * step;
+    } else if (shown + 1e-9 >= target) {
+      shown = Math.floor((target - 1e-12) / step) * step;
+      if (shown + 1e-9 >= target) shown = Math.max(0, shown - step);
+    }
+    return shown.toFixed(digits);
+  }
+
   function unitWord() { return unit === "mi" ? "mi" : "km"; }
 
   function formatClock(ms) {
@@ -163,8 +181,14 @@
     return unit === "mi" ? v * MI : v * 1000;
   }
 
-  function toleranceMeters(target) {
-    return Math.max(0.05 * MI, target * 0.02);
+  const AIM_OVER_MI = 0.03;
+
+  function aimOverMeters() {
+    return AIM_OVER_MI * MI;
+  }
+
+  function outerOverMeters(target) {
+    return Math.max(0.08 * MI, target * 0.03);
   }
 
   function randomSeed() {
@@ -361,26 +385,20 @@
     throw error;
   }
 
-  function isGood(res, target, tol) {
-    // Stop early once the loop is inside the tighter of ±0.05 mi and 2%.
-    const aim = Math.min(tol, 0.05 * MI);
-    return Math.abs(res.distance - target) <= aim && res.overlap <= 0.28;
+  function overshoot(res, target) {
+    return res.distance - target;
+  }
+
+  function isAim(res, target) {
+    const over = overshoot(res, target);
+    return over >= 0 && over <= aimOverMeters() && res.overlap <= 0.28;
   }
 
   function isHeavy(res) { return res.overlap >= 0.24; }
 
-  function better(a, b, target) {
-    const ae = Math.abs(a.distance - target);
-    const be = Math.abs(b.distance - target);
-    const tol = toleranceMeters(target);
-    const aOk = ae <= tol;
-    const bOk = be <= tol;
-    if (aOk !== bOk) return aOk;
-    if (aOk && bOk) {
-      if (Math.abs(a.overlap - b.overlap) > 0.05) return a.overlap < b.overlap;
-      return ae <= be;
-    }
-    if (Math.abs(ae - be) > target * 0.012) return ae < be;
+  function shorterOver(a, b) {
+    if (!b) return true;
+    if (Math.abs(a.distance - b.distance) > 8) return a.distance < b.distance;
     return a.overlap <= b.overlap;
   }
 
@@ -404,24 +422,35 @@
   }
 
   async function planLoop(origin, target, baseSeed, onProgress) {
-    const tol = toleranceMeters(target);
     const shapes = makeShapes(baseSeed);
+    const aim = aimOverMeters();
+    const outer = outerOverMeters(target);
+    const hardCap = MAX_CALLS + 3;
     let calls = 0;
-    let best = null;
+    let bestOver = null;
+    let closestUnder = null;
 
     function consider(res) {
       res.calls = calls;
-      if (!best || better(res, best, target)) best = res;
+      if (res.distance >= target) {
+        if (shorterOver(res, bestOver)) bestOver = res;
+      } else if (!closestUnder || res.distance > closestUnder.distance) {
+        closestUnder = res;
+      }
+    }
+
+    function inAim() {
+      return bestOver && overshoot(bestOver, target) <= aim && bestOver.overlap <= 0.28;
     }
 
     for (let s = 0; s < shapes.length && calls < MAX_CALLS; s++) {
-      if (best && isGood(best, target, tol)) break;
+      if (inAim()) break;
       const shape = shapes[s];
       const more = s < shapes.length - 1;
-      let r = target / (2 * Math.PI * DETOUR);
-      let lo = null;
-      let hi = null;
-      let lastD = null;
+      // A hair longer than target / (2π·1.3), so the first try leans over.
+      let r = target / (2 * Math.PI * DETOUR) * 1.02;
+      let under = null;
+      let over = null;
       const budget = Math.min(4, MAX_CALLS - calls);
       for (let attempt = 0; attempt < budget && calls < MAX_CALLS; attempt++) {
         onProgress({
@@ -433,36 +462,76 @@
         const res = await routeShape(origin, r, shape);
         calls++;
         if (!res) {
-          r *= 0.72;
+          r *= 1.15;
           continue;
         }
         consider(res);
-        if (isGood(res, target, tol)) return { ...best, calls };
+        if (inAim()) return { ...bestOver, calls };
         if (attempt === 0 && isHeavy(res) && more) break;
-        lastD = res.distance;
         if (res.distance < target) {
-          if (!lo || res.distance > lo.d) lo = { r, d: res.distance };
-        } else if (!hi || res.distance < hi.d) {
-          hi = { r, d: res.distance };
+          if (!under || res.distance > under.d) under = { r, d: res.distance };
+        } else if (!over || res.distance < over.d) {
+          over = { r, d: res.distance };
         }
         let next;
-        if (lo && hi && hi.d !== lo.d) {
-          const gapR = Math.abs(hi.r - lo.r) / Math.min(lo.r, hi.r);
-          const gapD = Math.abs(hi.d - lo.d);
-          if (gapR < 0.035 && gapD > tol * 2) break;
-          let t = (target - lo.d) / (hi.d - lo.d);
-          t = Math.min(0.8, Math.max(0.2, t));
-          next = lo.r + t * (hi.r - lo.r);
+        if (under && over && over.d !== under.d) {
+          const gapR = Math.abs(over.r - under.r) / Math.min(over.r, under.r);
+          if (gapR < 0.04 && (over.d - target) > outer) break;
+          const aimPoint = target + Math.min(aim * 0.45, 0.015 * MI);
+          let t = (aimPoint - under.d) / (over.d - under.d);
+          t = Math.min(0.82, Math.max(0.18, t));
+          next = under.r + t * (over.r - under.r);
+        } else if (res.distance < target) {
+          const scale = Math.min(1.7, Math.max(1.06, (target / res.distance) * 1.05));
+          next = r * scale;
         } else {
-          const scale = Math.min(1.65, Math.max(0.6, target / res.distance));
+          if (overshoot(res, target) <= aim) break;
+          const scale = Math.min(0.97, Math.max(0.75, target / res.distance));
           next = r * scale;
         }
-        next = Math.max(40, Math.min(next, target * 0.85));
+        next = Math.max(40, Math.min(next, target * 0.9));
         if (Math.abs(next - r) < 8) break;
         r = next;
       }
     }
-    return best ? { ...best, calls } : null;
+
+    // Nothing long enough yet: grow the closest short loop until it crosses.
+    if (!bestOver && closestUnder && calls < hardCap) {
+      let r = closestUnder.radius;
+      let d = closestUnder.distance;
+      const shape = closestUnder.shape;
+      while (calls < hardCap && d < target) {
+        const next = Math.min(target * 0.9, r * Math.min(1.7, Math.max(1.08, (target / d) * 1.06)));
+        if (next < r + 8) break;
+        onProgress({ calls: calls + 1, max: hardCap, radius: next, phase: "fit" });
+        const res = await routeShape(origin, next, shape);
+        calls++;
+        if (!res) {
+          r = next;
+          continue;
+        }
+        consider(res);
+        r = res.radius;
+        d = res.distance;
+        if (inAim()) break;
+        if (d >= target && closestUnder && calls < hardCap && overshoot(res, target) > aim) {
+          const aimPoint = target + Math.min(aim * 0.45, 0.015 * MI);
+          let t = (aimPoint - closestUnder.distance) / (res.distance - closestUnder.distance);
+          t = Math.min(0.82, Math.max(0.18, t));
+          const tween = closestUnder.radius + t * (res.radius - closestUnder.radius);
+          if (Math.abs(tween - res.radius) > 8) {
+            onProgress({ calls: calls + 1, max: hardCap, radius: tween, phase: "fit" });
+            const tighter = await routeShape(origin, tween, shape);
+            calls++;
+            if (tighter) consider(tighter);
+          }
+          break;
+        }
+      }
+    }
+
+    if (bestOver) return { ...bestOver, calls };
+    return null;
   }
 
   function presentSteps(steps) {
@@ -578,23 +647,27 @@
   function showResult(loop) {
     const meters = loop.distance;
     const target = loop.target;
-    const tol = toleranceMeters(target);
-    const err = meters - target;
     resultEl.dataset.ready = "1";
     resultEl.dataset.meters = String(meters);
     resultEl.dataset.miles = String(meters / MI);
     resultEl.dataset.calls = String(loop.calls || 0);
     resultEl.dataset.overlap = String(loop.overlap || 0);
     resultEl.dataset.targetMiles = String(target / MI);
-    $("actualValue").textContent = formatDist(meters);
+    const shown = formatLoopDistance(meters, target);
+    const shownTarget = formatDist(target);
+    resultEl.dataset.shown = shown;
+    $("actualValue").textContent = shown;
     $("actualUnit").textContent = unitWord();
     $("eta").textContent = formatEta(meters);
-    const within = Math.abs(err) <= tol;
-    const sign = err >= 0 ? "+" : "−";
-    const delta = formatDist(Math.abs(err));
+    const over = meters - target;
+    const outer = outerOverMeters(target);
+    const within = over >= 0 && over <= outer;
+    const deltaNum = Number(shown) - Number(shownTarget);
+    const delta = Math.abs(deltaNum).toFixed(2);
+    const sign = deltaNum >= 0 ? "+" : "−";
     $("resultMeta").textContent = within
-      ? "Target " + formatDist(target) + " " + unitWord() + " · " + sign + delta + " " + unitWord()
-      : "Closest loop. Target " + formatDist(target) + " " + unitWord() + " · " + sign + delta + " " + unitWord();
+      ? "Target " + shownTarget + " " + unitWord() + " · " + sign + delta + " " + unitWord()
+      : "Over the target. Target " + shownTarget + " " + unitWord() + " · " + sign + delta + " " + unitWord();
   }
 
   function syncControls() {
@@ -754,9 +827,9 @@
     resultEl.dataset.gen = String(Number(resultEl.dataset.gen || "0") + 1);
     current.samples = samplesFor(current.geometry);
     drawLoop(current);
-    const tol = toleranceMeters(target);
-    const ok = Math.abs(found.distance - target) <= tol;
-    setStatus(ok ? "Loop ready." : "Closest loop I could scout. Actual distance is shown.");
+    const over = found.distance - target;
+    const ok = over >= 0 && over <= outerOverMeters(target);
+    setStatus(ok ? "Loop ready." : "A bit over the target. Actual distance is shown.");
   }
 
   async function generate(fresh) {
@@ -792,8 +865,8 @@
         setStatus(phase + "… pass " + info.calls + " of " + info.max + " · radius " + radiusLabel);
       });
       if (token !== runToken) return;
-      if (!found) {
-        setStatus("No walkable loop from here. Move the start and try again.");
+      if (!found || found.distance < target) {
+        setStatus("Couldn't build a loop at least as long as the target. Try New Loop.");
         return;
       }
       applyLoop(found, target, seed);
@@ -846,14 +919,18 @@
     try {
       const routed = await fetchRoute([current.start, ...wps, current.start]);
       if (token !== runToken) return;
-      current = {
-        ...current,
-        geometry: routed.geometry,
-        steps: routed.steps,
-        distance: routed.distance,
-        overlap: routed.overlap,
-        waypoints: wps
-      };
+      if (routed.distance >= current.target) {
+        current = {
+          ...current,
+          geometry: routed.geometry,
+          steps: routed.steps,
+          distance: routed.distance,
+          overlap: routed.overlap,
+          waypoints: wps
+        };
+      } else {
+        current = reverseLocal(current);
+      }
     } catch (e) {
       if (token !== runToken) return;
       current = reverseLocal(current);
@@ -1099,7 +1176,7 @@
     const miles = (current.distance / MI).toFixed(2);
     const fav = {
       id: Date.now().toString(36),
-      name: "Dungeon Run · " + formatDist(current.distance) + " " + unitWord(),
+      name: "Dungeon Run · " + formatLoopDistance(current.distance, current.target) + " " + unitWord(),
       savedAt: Date.now(),
       unit,
       paceMinPerMile,

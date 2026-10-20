@@ -3,7 +3,7 @@
    default scope is /the-system/loop/ and cannot control the root app.
    Cache names stay under the loop-quest- prefix. Tiles and the foot
    router are other origins and are never cached. */
-const CACHE_VERSION = "loop-quest-v1";
+const CACHE_VERSION = "loop-quest-v2";
 
 const SHELL = [
   "./",
